@@ -3,16 +3,21 @@ open Lexing
 open Parser
 
 exception SyntaxError of string
-
-(*
-let next_line lexbuf =
-    let pos = lexbuf.lex_curr_p in
-    lexbuf.lex_curr_p <-
-      { pos with pos_bol = lexbuf.lex_curr_pos
-               ; pos_lnum = pos.pos_lnum + 1
-      }
-*)
 }
 
-rule token = parse
-| _ { EOF }
+rule read = parse
+| "[" { LEFT_BRACKET }
+| "]" { RIGHT_BRACKET }
+| "{" { LEFT_BRACE }
+| "}" { RIGHT_BRACE }
+| "<" { LEFT_ANGLE }
+| ">" { RIGHT_ANGLE }
+| "(" { LEFT_PARENTHESIS }
+| ")" { RIGHT_PARENTHESIS }
+| [^ '[' ']' '{' '}' '<' '>' '(' ')']*
+  {
+    let buf = Buffer.create 17 in
+      Buffer.add_string buf (Lexing.lexeme lexbuf);
+      CODE (Buffer.contents buf)
+  }
+| eof { EOF }
