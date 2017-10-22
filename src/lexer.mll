@@ -26,3 +26,4 @@ parse
 { Buffer.add_string buf (Lexing.lexeme lexbuf);
   read_string buf lexbuf
 }
+| eof { STRING (Buffer.contents buf) }

@@ -20,27 +20,24 @@ main:
 ;
 
 fragment_values:
-| LEFT_BRACE; f = fragment_value; RIGHT_BRACE
-{ [`Delimiter "{"; f; `Delimiter "}"] }
+| LEFT_BRACE; f = fragment_values; RIGHT_BRACE
+{ [`Delimiter "{"] @ f @ [`Delimiter "}"] }
+| LEFT_BRACKET; f = fragment_values; RIGHT_BRACKET
+{ [`Delimiter "["] @ f @ [`Delimiter "]"] }
+| LEFT_ANGLE_BRACKET; f = fragment_values; RIGHT_ANGLE_BRACKET
+{ [`Delimiter "<"] @ f @ [`Delimiter ">"] }
+| LEFT_PARENTHESIS; f = fragment_values; RIGHT_PARENTHESIS
+{ [`Delimiter "("] @ f @ [`Delimiter ")"] }
+
 | LEFT_BRACE; ; RIGHT_BRACE
 { [`Delimiter "{"; `Delimiter "}"] }
-| LEFT_BRACKET; f = fragment_value; RIGHT_BRACKET
-{ [`Delimiter "["; f ; `Delimiter "]"] }
 | LEFT_BRACKET; RIGHT_BRACKET
 { [`Delimiter "["; `Delimiter "]"] }
-| LEFT_ANGLE_BRACKET; f = fragment_value; RIGHT_ANGLE_BRACKET
-{ [`Delimiter "<"; f; `Delimiter ">"] }
 | LEFT_ANGLE_BRACKET; RIGHT_ANGLE_BRACKET
 { [`Delimiter "<"; `Delimiter ">"] }
-| LEFT_PARENTHESIS; f = fragment_value; RIGHT_PARENTHESIS
-{ [`Delimiter "("; f; `Delimiter ")"] }
 | LEFT_PARENTHESIS; RIGHT_PARENTHESIS
 { [`Delimiter "("; `Delimiter ")"] }
-| s = STRING { [`String s] }
-| h = HOLE { [`Hole h] }
-;
 
-fragment_value:
-| s = STRING { `String s }
-| h = HOLE { `Hole h }
+| s = STRING { [`String s] }
+(*| h = HOLE { [`Hole h] }*)
 ;
