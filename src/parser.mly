@@ -16,20 +16,24 @@
 
 main:
 | EOF { [] }
-| fragments = fragment_values f = main { fragments @ f}
+| fragments = fragment_list f = main { List.flatten fragments }
 ;
 
-fragment_values:
-| LEFT_BRACE; f = fragment_values; RIGHT_BRACE
-{ [`Delimiter "{"] @ f @ [`Delimiter "}"] }
-| LEFT_BRACKET; f = fragment_values; RIGHT_BRACKET
-{ [`Delimiter "["] @ f @ [`Delimiter "]"] }
-| LEFT_ANGLE_BRACKET; f = fragment_values; RIGHT_ANGLE_BRACKET
-{ [`Delimiter "<"] @ f @ [`Delimiter ">"] }
-| LEFT_PARENTHESIS; f = fragment_values; RIGHT_PARENTHESIS
-{ [`Delimiter "("] @ f @ [`Delimiter ")"] }
+fragment_list:
+| f = fragment_values { [f] }
+| f = fragment_values rest = fragment_list { f::rest }
 
-| LEFT_BRACE; ; RIGHT_BRACE
+fragment_values:
+| LEFT_BRACE; f = fragment_list; RIGHT_BRACE
+{ [`Delimiter "{"] @ List.flatten f @ [`Delimiter "}"] }
+| LEFT_BRACKET; f = fragment_list; RIGHT_BRACKET
+{ [`Delimiter "["] @ List.flatten f @ [`Delimiter "]"] }
+| LEFT_ANGLE_BRACKET; f = fragment_list; RIGHT_ANGLE_BRACKET
+{ [`Delimiter "<"] @ List.flatten f @ [`Delimiter ">"] }
+| LEFT_PARENTHESIS; f = fragment_list; RIGHT_PARENTHESIS
+{ [`Delimiter "("] @ List.flatten f @ [`Delimiter ")"] }
+
+| LEFT_BRACE; RIGHT_BRACE
 { [`Delimiter "{"; `Delimiter "}"] }
 | LEFT_BRACKET; RIGHT_BRACKET
 { [`Delimiter "["; `Delimiter "]"] }
@@ -38,6 +42,9 @@ fragment_values:
 | LEFT_PARENTHESIS; RIGHT_PARENTHESIS
 { [`Delimiter "("; `Delimiter ")"] }
 
-| s = STRING { [`String s] }
-(*| h = HOLE { [`Hole h] }*)
+| f = atomic_fragment { [f] }
 ;
+
+atomic_fragment:
+| s = STRING { `String s }
+| h = HOLE { `Hole h }

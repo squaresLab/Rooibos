@@ -3,7 +3,7 @@ open Lexer
 open Lexing
 
 let () =
-  let snippet = Lexing.from_string "xx(x(x))" in
+  let snippet = Lexing.from_string "(x(y()))" in
   let result = Parser.main Lexer.read snippet in
   List.iter result ~f:(function
       | `Delimiter s -> Format.printf "Delim: %s@." s
