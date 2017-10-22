@@ -3,16 +3,26 @@ open Lexing
 open Parser
 
 exception SyntaxError of string
-
-(*
-let next_line lexbuf =
-    let pos = lexbuf.lex_curr_p in
-    lexbuf.lex_curr_p <-
-      { pos with pos_bol = lexbuf.lex_curr_pos
-               ; pos_lnum = pos.pos_lnum + 1
-      }
-*)
 }
 
-rule token = parse
-| _ { EOF }
+rule read = parse
+| "[" { LEFT_BRACKET }
+| "]" { RIGHT_BRACKET }
+| "{" { LEFT_BRACE }
+| "}" { RIGHT_BRACE }
+| "<" { LEFT_ANGLE_BRACKET }
+| ">" { RIGHT_ANGLE_BRACKET }
+| "(" { LEFT_PARENTHESIS }
+| ")" { RIGHT_PARENTHESIS }
+| _   { read_string (Buffer.create 17) lexbuf }
+| eof { EOF }
+
+(* parse until we hit a delimiter *)
+and read_string buf =
+parse
+| '{' | '}' | '[' | ']' | '<' | '>' | '(' | ')'
+{ STRING (Buffer.contents buf) }
+| _
+{ Buffer.add_string buf (Lexing.lexeme lexbuf);
+  read_string buf lexbuf
+}

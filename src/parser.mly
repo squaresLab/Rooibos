@@ -15,13 +15,15 @@
 %%
 
 main:
-| fragments = fragment_values EOF { fragments }
+| EOF { [] }
 | fragments = fragment_values f = main { fragments @ f}
 ;
 
 fragment_values:
 | LEFT_BRACE; f = fragment_value; RIGHT_BRACE
 { [`Delimiter "{"; f; `Delimiter "}"] }
+| LEFT_BRACE; ; RIGHT_BRACE
+{ [`Delimiter "{"; `Delimiter "}"] }
 | LEFT_BRACKET; f = fragment_value; RIGHT_BRACKET
 { [`Delimiter "["; f ; `Delimiter "]"] }
 | LEFT_ANGLE_BRACKET; f = fragment_value; RIGHT_ANGLE_BRACKET
