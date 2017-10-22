@@ -14,16 +14,10 @@ rule read = parse
 | ">" { RIGHT_ANGLE_BRACKET }
 | "(" { LEFT_PARENTHESIS }
 | ")" { RIGHT_PARENTHESIS }
-| _   { read_string (Buffer.create 17) lexbuf }
-| eof { EOF }
-
-(* parse until we hit a delimiter *)
-and read_string buf =
-parse
-| '{' | '}' | '[' | ']' | '<' | '>' | '(' | ')'
-{ STRING (Buffer.contents buf) }
-| _
-{ Buffer.add_string buf (Lexing.lexeme lexbuf);
-  read_string buf lexbuf
+| [^ '[' ']' '{' '}' '<' '>' '(' ')']*
+{
+  let buf = Buffer.create 17 in
+  Buffer.add_string buf (Lexing.lexeme lexbuf);
+  STRING (Buffer.contents buf)
 }
-| eof { STRING (Buffer.contents buf) }
+| eof { EOF }
