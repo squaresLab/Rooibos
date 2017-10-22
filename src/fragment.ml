@@ -11,11 +11,14 @@ type t =
   | `Code of string
   | `Block of t list ]
 
-let rec print fragment =
+let rec to_s (fragment : t) : string =
   match fragment with
-  | `Nested(_, f) -> Format.sprintf "Nested(%s)" (print f)
+  | `Nested(_, f) -> Format.sprintf "Nested(%s)" (to_s f)
   | `Hole(name) -> Format.sprintf "Hole(%s)" name
   | `Code(s) -> Format.sprintf "Code(%s)" s
   | `Block(fs) ->
-      let fs = String.concat "; " (List.map print fs) in
+      let fs = String.concat "; " (List.map to_s fs) in
         Format.sprintf "Block([%s])" fs
+
+let print (fragment : t) : unit =
+  print_string (to_s fragment)
