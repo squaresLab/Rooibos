@@ -1,2 +1,4 @@
-src/lexer.ml
-src/parser.ml
+lexer.ml
+lexer.mli
+parser.ml
+parser.mli
