@@ -1,0 +1,23 @@
+(jbuild_version 1)
+
+(ocamllex
+  (lexer))
+
+(menhir
+  ((modules (parser))))
+
+
+(library
+  ((name rooibos_lib)
+   (libraries (core_kernel menhirLib))))
+
+
+(executable
+  ((libraries (rooibos_lib))
+   (name rooibos)))
+
+
+(alias
+ ((name DEFAULT)
+  (deps
+   (rooibos.exe))))
