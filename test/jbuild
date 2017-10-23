@@ -1,0 +1,11 @@
+(jbuild_version 1)
+
+(executable
+ ((name test_rooibos)
+  (libraries (oUnit core_kernel))))
+
+
+(alias
+ ((name runtest)
+  (deps (test_rooibos.exe))
+  (action (run ${<} -runner sequential))))
