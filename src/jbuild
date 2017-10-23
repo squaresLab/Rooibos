@@ -3,17 +3,17 @@
 (ocamllex
   (lexer))
 
-(menhir 
+(menhir
   ((modules (parser))))
 
 
 (library
-  ((name rooibos_modules)
+  ((name rooibos_lib)
    (libraries (core_kernel menhirLib))))
 
 
 (executable
-  ((libraries (rooibos_modules))
+  ((libraries (rooibos_lib))
    (name rooibos)))
 
 
