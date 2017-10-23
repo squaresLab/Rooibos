@@ -2,7 +2,7 @@
 
 (executable
  ((name test_rooibos)
-  (libraries (oUnit core_kernel))))
+  (libraries (rooibos oUnit))))
 
 
 (alias

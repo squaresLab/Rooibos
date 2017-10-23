@@ -1,6 +1,10 @@
 open OUnit2
+open Rooibos
 
-let test_parser ctxt = ()
+let test_parser ctxt =
+  let (!) s = Parser.main Lexer.read (Lexing.from_string s) in
+  let matcher = !"(x(:[_]()))" in
+  ()
 
 let suite =
   "test" >::: [

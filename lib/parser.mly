@@ -21,7 +21,7 @@
 
 main:
 | EOF         { Compound ("terms", []) }
-| terms main  { Compound ("terms", $1) }
+| terms EOF  { Compound ("terms", $1) }
 
 terms:
 | term       { [$1] }
