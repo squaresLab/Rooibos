@@ -40,6 +40,11 @@ let test_parser _ =
     (Compound ("terms",[Const "x"; Var ("1",0)]))
     (!"x:[1]");
 
+    assert_equal
+    ~printer:Term.to_string
+    (Compound ("terms",[Const "xy"; Var ("1",0)]))
+    (!"xy:[1]");
+
   assert_fails_with_message
     "FIXME TWO OR MORE HOLES SHOULD FAIL"
     (fun () -> !":[_]:[_]:[_]")
