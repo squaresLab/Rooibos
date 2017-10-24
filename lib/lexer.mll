@@ -7,7 +7,6 @@ exception SyntaxError of string
 }
 
 let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
-let const = [^ '[' ']' '{' '}' '<' '>' '(' ')']*
 
 rule read = parse
 | "[" { LEFT_BRACKET }
@@ -27,10 +26,24 @@ rule read = parse
   let name = String.chop_suffix_exn name ~suffix:"]" in
   HOLE name
 }
-| const
+| _ as c
 {
   let buf = Buffer.create 17 in
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  CONST (Buffer.contents buf)
+  Buffer.add_char buf c;
+  read_until_hole_or_delimiter buf lexbuf
 }
 | eof { EOF }
+
+and read_until_hole_or_delimiter buf = parse
+| ':' '['
+{
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-2;
+  CONST (Buffer.contents buf)
+}
+| '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')'
+{
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-1;
+  CONST (Buffer.contents buf)
+}
+| _ as c  { Buffer.add_char buf c; read_until_hole_or_delimiter buf lexbuf }
+| eof     { CONST (Buffer.contents buf) }
