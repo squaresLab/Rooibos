@@ -4,6 +4,8 @@ open Term
 exception NoUnify
 
 let rec unify_terms env t1 t2 =
+  Format.printf "Unify %s@.\
+                 With  %s@." (Term.to_string t1) (Term.to_string t2);
   match Environment.substitute env t1, Environment.substitute env t2 with
   | t1, t2 when t1 = t2 -> env
   | (Var y, t) | (t, Var y) ->

@@ -1,6 +1,13 @@
 %{
   open Core_kernel
   open Term
+
+  (* Do not wrap Var's in blocks *)
+  let b x =
+  match x with
+  | Some Compound ("block", [Var v]) -> [Var v]
+  | Some x -> [x]
+  | None  -> []
 %}
 
 %token <string> CONST
@@ -20,19 +27,21 @@
 %%
 
 main:
-| EOF         { Compound ("terms", []) }
-| terms EOF  { Compound ("terms", $1) }
+| EOF        { Compound ("block", []) }
+| block EOF  { $1 }
+
+block:
+| terms      { Compound ("block", $1) }
 
 terms:
 | term       { [$1] }
 | term terms { $1 :: $2 }
 
 term:
-| LEFT_BRACKET terms? RIGHT_BRACKET         { Compound ("square", Option.value ~default:[] $2) }
-| LEFT_BRACE terms? RIGHT_BRACE             { Compound ("curly", Option.value ~default:[] $2) }
-| LEFT_ANGLE terms? RIGHT_ANGLE             { Compound ("angle", Option.value ~default:[] $2) }
-| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { Compound ("round", Option.value ~default:[] $2) }
-| literal                                   { $1 }
+| LEFT_BRACKET block? RIGHT_BRACKET          { Compound ("square", b $2) }
+| LEFT_PARENTHESIS block? RIGHT_PARENTHESIS  { Compound ("round", b $2) }
+| LEFT_BRACE block? RIGHT_BRACE              { Compound ("curly", b $2) }
+| literal                                    { $1 }
 
 (* TODO: disallow two holes next to each other, (or merge into one?) *)
 literal:
