@@ -7,7 +7,7 @@ type t =
   | Const of constant
   | Compound of constant * t list
 
-(** [contains x t] returns [true] when term [t] contains variable instance [x]  *)
+(** [contains t x] returns [true] when term [t] contains variable instance [x]  *)
 val contains : t -> variable -> bool
 
 val to_string : t -> string

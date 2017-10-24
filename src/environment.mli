@@ -13,8 +13,8 @@ val add : t -> variable -> Term.t -> t
     in [env]. *)
 val lookup : t -> variable -> Term.t
 
-(** [substitute sub t] substitutes in term [t] values for variables,
-    as specified by the associative list [s]. It substitutes
+(** [substitute env t] substitutes in term [t] values for variables,
+    as given in [env]. It substitutes
     repeatedly until the terms stops changing, so this is not the
     usual kind of substitution. It is what we need during
     unification. *)
