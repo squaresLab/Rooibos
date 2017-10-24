@@ -43,11 +43,15 @@ let test_parser _ =
   assert_equal
     ~printer:Term.to_string
     (Compound ("block",[Const "xy"; Var ("1",0)]))
-    (!"xy:[1]")
+    (!"xy:[1]");
 
-  (*assert_fails_with_message
-    "FIXME TWO OR MORE HOLES SHOULD FAIL"
-    (fun () -> !":[_]:[_]:[_]");*)
+  assert_raises
+    (Exceptions.ParseError  "Please, no consecutive holes allowed")
+    (fun () -> !":[_]:[_]");
+
+  assert_raises
+    (Exceptions.ParseError  "Please, no consecutive holes allowed")
+    (fun () -> !":[_]:[_]:[_]")
 
 
 let test_unify _ =

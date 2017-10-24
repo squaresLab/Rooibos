@@ -1,5 +1,6 @@
 %{
   open Core_kernel
+  open Exceptions
   open Term
 
   let to_list x =
@@ -43,7 +44,7 @@ term:
 | LEFT_PARENTHESIS block? RIGHT_PARENTHESIS { Compound ("round", to_list $2) }
 | literal                                   { $1 }
 
-(* TODO: disallow two holes next to each other, (or merge into one?) *)
 literal:
 | CONST { Const $1 }
 | HOLE  { Var ($1, 0) }
+| HOLE HOLE { raise (ParseError ("Please, no consecutive holes allowed")) }
