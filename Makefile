@@ -1,16 +1,16 @@
 all:
-	@jbuilder build @install @DEFAULT
+	jbuilder build @install @DEFAULT
 
 install:
-	@jbuilder install
+	jbuilder install
 
 test:
-	@jbuilder runtest
+	jbuilder runtest
 
 clean:
-	@jbuilder clean
+	jbuilder clean
 
 uninstall:
-	@jbuilder uninstall
+	jbuilder uninstall
 
 .PHONY: all install test clean uninstall
