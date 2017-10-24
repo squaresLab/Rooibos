@@ -2,12 +2,11 @@
   open Core_kernel
   open Term
 
-  (* Do not wrap Var's in blocks *)
-  let b x =
-  match x with
-  | Some Compound ("block", [Var v]) -> [Var v]
-  | Some x -> [x]
-  | None  -> []
+  let to_block x =
+    match x with
+    | Some Compound ("block", [Var v]) -> [Var v]
+    | Some x -> [x]
+    | None  -> []
 %}
 
 %token <string> CONST
@@ -38,9 +37,9 @@ terms:
 | term terms { $1 :: $2 }
 
 term:
-| LEFT_BRACKET block? RIGHT_BRACKET          { Compound ("square", b $2) }
-| LEFT_PARENTHESIS block? RIGHT_PARENTHESIS  { Compound ("round", b $2) }
-| LEFT_BRACE block? RIGHT_BRACE              { Compound ("curly", b $2) }
+| LEFT_BRACKET block? RIGHT_BRACKET          { Compound ("square", to_block $2) }
+| LEFT_PARENTHESIS block? RIGHT_PARENTHESIS  { Compound ("round", to_block $2) }
+| LEFT_BRACE block? RIGHT_BRACE              { Compound ("curly", to_block $2) }
 | literal                                    { $1 }
 
 (* TODO: disallow two holes next to each other, (or merge into one?) *)

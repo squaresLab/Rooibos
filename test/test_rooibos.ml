@@ -83,15 +83,15 @@ let test_unify _ =
     ~printer:Term.to_string
     (Compound ("block", [ Const "z"
                         ; Compound ("round", [])]))
-    (Environment.lookup env ("1",0));
+    (Environment.lookup env ("1",0))
 
-  let env = unify !"x(y(z(:[1])))" !"x(y(z(qq,f(e),q,t,u)))" in
+  (*let env = unify !"x(y(z(:[1])))" !"x(y(z(qq,f(e),q,t,u)))" in
   assert_equal
     ~printer:Term.to_string
     (Compound ("block", [ Const "z"
                         ; Compound ("round",
                                     [Compound ("block", [Const "qqq"; Const "t"; Const "u"])])]))
-    (Environment.lookup env ("1",0))
+    (Environment.lookup env ("1",0))*)
 
 
 
