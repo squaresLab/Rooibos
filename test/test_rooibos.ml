@@ -97,16 +97,22 @@ let test_unify _ =
     (!"()")
     (Environment.lookup env ("1",0));
 
-  let env = unify !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x" in
+  let env = unify !"x({(:[1])}:[2])x" !"x({(a,(),b,c)}:)x" in
   assert_equal
-    ([!"a,b,c"; !":"])
-    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
+    ([!"a,(),b,c"; !":"])
+    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)]);
+
+  let env = unify !"x = :[1];" !"x = foo[0][1];" in
+  assert_equal
+    ~printer:Term.to_string
+    (!"foo[0][1]")
+    (Environment.lookup env ("1",0))
 
 
-  let suite =
-    "test" >::: [
-      "test_parser" >:: test_parser
-    ; "test_unify" >:: test_unify
-    ]
+let suite =
+  "test" >::: [
+    "test_parser" >:: test_parser
+  ; "test_unify" >:: test_unify
+  ]
 
 let () = run_test_tt_main suite
