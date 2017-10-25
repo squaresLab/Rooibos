@@ -2,12 +2,17 @@ type constant = string
 
 type variable = string * int
 
+(** Terms are used to represent holes in the code (i.e., variables),
+    concrete snippets of code (i.e., constants), and
+    (optionally) bracket-delimited sequences of terms
+    (i.e., compound terms).*)
 type t =
   | Var of variable
   | Const of constant
   | Compound of constant * t list
 
-(** [contains x t] returns [true] when term [t] contains variable instance [x]  *)
+(** [contains term var] returns [true] when term [term] contains
+    variable instance [var] *)
 val contains : t -> variable -> bool
 
 val to_string : t -> string
