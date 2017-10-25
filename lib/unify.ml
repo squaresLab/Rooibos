@@ -5,6 +5,9 @@ open Term
 
 exception NoUnify
 
+(** Put z3 in your PATH *)
+let solver_path = "z3"
+
 (** TODO:
     Add a switch so we can  debug unify with the following code:
     Format.printf "Unify %s@.\
@@ -51,11 +54,11 @@ let concat_const_and_var =
       | Var (s,_) -> s^acc
       | _ -> failwith "Only consts and vars allowed")
 
-let solver_path = "/Users/rvt/z3/z3-4.5.0-x64-osx-10.11.6/bin/z3"
-
 let get_assertion_result solver (lhs : Smtlib.term list) (rhs : Smtlib.term) =
   Smtlib.assert_ solver (Smtlib.equals (Smtlib.Str.concat lhs) rhs);
-  Smtlib.get_model solver
+  match Smtlib.check_sat solver with
+  | Sat -> Smtlib.get_model solver
+  | _ -> failwith "Cannot get sat"
 
 (** Only allow holes in t1 for now. This is not validated yet *)
 let unify_flat env t1 t2 =
@@ -65,15 +68,14 @@ let unify_flat env t1 t2 =
   let holes_of_term : Term.t list -> string list =
     List.filter_map ~f:(function | Var (s,_) -> Some s | _ -> None) in
   let holes = holes_of_term t1 in
-  Format.printf "Declaring consts...@.";
   let add_smt_vars =
     List.iter ~f:(fun id ->
         Smtlib.declare_const solver (Id id) (Sort (Id "String"))) in
   add_smt_vars holes;
-  Format.printf "Done Declaring consts...@.";
-  let rhs = Smtlib.String (concat_const t2) in
-  let lhs = List.map t1 ~f:(function
-      | Const c -> Smtlib.String c
+  let rhs = Smtlib.QString (concat_const t2) in
+  let lhs =
+    List.map t1 ~f:(function
+      | Const c -> Smtlib.QString c
       | Var (v,_) -> Smtlib.Const (Id v)
       | Compound _ -> failwith "Not allowed")
   in
