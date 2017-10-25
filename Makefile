@@ -4,6 +4,9 @@ all:
 install:
 	@jbuilder install
 
+doc:
+	@jbuilder build @doc
+
 test:
 	@jbuilder runtest
 
