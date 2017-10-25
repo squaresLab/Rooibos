@@ -103,10 +103,29 @@ let test_unify _ =
     ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
 
 
-  let suite =
-    "test" >::: [
-      "test_parser" >:: test_parser
-    ; "test_unify" >:: test_unify
-    ]
+let test_smt_strings _ =
+  ()
+  (*let env = Environment.create () in
+  let t1 : Term.t = !"x = :[1] + 10;" in
+  let t2 : Term.t = !"x = y + 10;" in
+  let _ =  Unify.unify_flat env t1 t2 in
+    ()*)
+
+
+(*let env = solve !"x = z(10, :[1], y[0]);" !"x = z(10, doot(0), y[0]);" in
+  assert_equal
+    (!"doot(0)")
+    (Environment.lookup env ("1",0));
+
+  let f () = solve !"foo.:[1].val = :[2]" !"foo.val = 100" in
+  assert_raises Unify.NoUnify f
+*)
+
+let suite =
+  "test" >::: [
+    "test_parser" >:: test_parser
+  ; "test_unify" >:: test_unify
+  ; "test_smt_strings" >:: test_smt_strings
+  ]
 
 let () = run_test_tt_main suite
