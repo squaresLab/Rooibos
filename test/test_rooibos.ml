@@ -37,16 +37,20 @@ let test_parser _ =
 
   assert_equal
     ~printer:Term.to_string
-    (Compound ("terms",[Const "x"; Var ("1",0)]))
+    (Compound ("block",[Const "x"; Var ("1",0)]))
     (!"x:[1]");
 
-    assert_equal
+  assert_equal
     ~printer:Term.to_string
-    (Compound ("terms",[Const "xy"; Var ("1",0)]))
+    (Compound ("block",[Const "xy"; Var ("1",0)]))
     (!"xy:[1]");
 
-  assert_fails_with_message
-    "FIXME TWO OR MORE HOLES SHOULD FAIL"
+  assert_raises
+    (Exceptions.ParseError  "Please, no consecutive holes allowed")
+    (fun () -> !":[_]:[_]");
+
+  assert_raises
+    (Exceptions.ParseError  "Please, no consecutive holes allowed")
     (fun () -> !":[_]:[_]:[_]")
 
 
@@ -66,16 +70,43 @@ let test_unify _ =
   let env = unify !":[1]" !"(x(y()))" in
   assert_equal
     ~printer:Term.to_string
-    (Compound ("round", [ Const "x"
-                        ; Compound ("round", [ Const "y"
-                                             ; Compound ("round", [])])]))
-    (Environment.lookup env ("1",0))
+    (!"(x(y()))")
+    (Environment.lookup env ("1",0));
+
+  let env = unify !":[1]" !"x()x" in
+  assert_equal
+    ~printer:Term.to_string
+    (!"x()x")
+    (Environment.lookup env ("1",0));
+
+  let env = unify !"x(y:[1])" !"x(y(z()))" in
+  assert_equal
+    ~printer:Term.to_string
+    (!"(z())")
+    (Environment.lookup env ("1",0));
+
+  let env = unify !"x(y(:[1]))" !"x(y(z()))" in
+  assert_equal
+    ~printer:Term.to_string
+    (!"z()")
+    (Environment.lookup env ("1",0));
+
+  let env = unify !"x:[1]x" !"x()x" in
+  assert_equal
+    ~printer:Term.to_string
+    (!"()")
+    (Environment.lookup env ("1",0));
+
+  let env = unify !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x" in
+  assert_equal
+    ([!"a,b,c"; !":"])
+    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
 
 
-let suite =
-  "test" >::: [
-    "test_parser" >:: test_parser
-  ; "test_unify" >:: test_unify
-  ]
+  let suite =
+    "test" >::: [
+      "test_parser" >:: test_parser
+    ; "test_unify" >:: test_unify
+    ]
 
 let () = run_test_tt_main suite
