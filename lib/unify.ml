@@ -65,10 +65,12 @@ let unify_flat env t1 t2 =
   let holes_of_term : Term.t list -> string list =
     List.filter_map ~f:(function | Var (s,_) -> Some s | _ -> None) in
   let holes = holes_of_term t1 in
+  Format.printf "Declaring consts...@.";
   let add_smt_vars =
     List.iter ~f:(fun id ->
         Smtlib.declare_const solver (Id id) (Sort (Id "String"))) in
   add_smt_vars holes;
+  Format.printf "Done Declaring consts...@.";
   let rhs = Smtlib.String (concat_const t2) in
   let lhs = List.map t1 ~f:(function
       | Const c -> Smtlib.String c
