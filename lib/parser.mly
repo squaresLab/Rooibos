@@ -11,14 +11,10 @@
 
 %token <string> CONST
 %token <string> HOLE
-%token LEFT_BRACKET
-%token RIGHT_BRACKET
-%token LEFT_BRACE
-%token RIGHT_BRACE
-%token LEFT_ANGLE
-%token RIGHT_ANGLE
-%token LEFT_PARENTHESIS
-%token RIGHT_PARENTHESIS
+%token LEFT_BRACKET RIGHT_BRACKET
+%token LEFT_BRACE RIGHT_BRACE
+%token LEFT_ANGLE RIGHT_ANGLE
+%token LEFT_PARENTHESIS RIGHT_PARENTHESIS
 %token EOF
 
 %start <Term.t> main
