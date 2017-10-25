@@ -2,6 +2,10 @@ type constant = string
 
 type variable = string * int
 
+(** Terms are used to represent holes in the code (i.e., variables),
+    concrete snippets of code (i.e., constants), and
+    (optionally) bracket-delimited sequences of terms
+    (i.e., compound terms).*)
 type t =
   | Var of variable
   | Const of constant
