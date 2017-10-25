@@ -1,5 +1,8 @@
 open Term
 
+(** Environments provide a mapping from template "variables" (i.e., holes)
+    to "terms" (i.e., snippets of code) in a concrete source code
+    instance. *)
 type t
 
 
