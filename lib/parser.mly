@@ -44,7 +44,7 @@ term:
 | literal                                   { $1 }
 
 literal:
-| SEPARATOR { Separator $1 }
+| SEPARATOR { Const $1 }
 | LINE_BREAK { Break }
 | CONST     { Const $1 }
 | HOLE      { Var ($1, 0) }
