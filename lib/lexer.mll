@@ -19,9 +19,7 @@ rule read = parse
 | ")" { RIGHT_PARENTHESIS }
 | hole
 {
-  let buf = Buffer.create 17 in
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  let name = Buffer.contents buf in
+  let name = Lexing.lexeme lexbuf in
   let name = String.chop_prefix_exn name ~prefix:":[" in
   let name = String.chop_suffix_exn name ~suffix:"]" in
   HOLE name
