@@ -115,6 +115,13 @@ let test_smt_strings _ =
   let t2 : Term.t = !!"x = a + y + 10;" in
   let _ =  Unify.unify_flat env t1 t2 in
 
+  Format.printf "New case@.";
+  let env = Environment.create () in
+  let t1 : Term.t = !!"x = :[a] - 10;" in (* can't use '1' with z3 lol *)
+  let t2 : Term.t = !!"x = y + 10;" in
+  let _ =  Unify.unify_flat env t1 t2 in
+
+
   ()
 
 

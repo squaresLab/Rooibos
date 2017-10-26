@@ -31,59 +31,82 @@ and unify_lists env lst1 lst2 =
   with Invalid_argument _ -> raise NoUnify
 
 
-(** 'Normalize' a term by flattening it: one top-level compound
-    is allowed, but no other nested compounds. Uh, this is possibly wrong *)
+(** 'Normalize' a term by flattening consts and vars and returning the strings:
+    one top-level compound "block" (i.e., list) is allowed, but no other nested
+    compounds. Unifying nested compounds should already happen before hitting
+    this stage.  (Uh, this may turn out to be possibly wrong) *)
 let normalize : Term.t -> Term.t list =
   function
   | Const _ as c -> [c]
   | Var _ as v -> [v]
-  | Compound (_,l) ->
-    List.filter l ~f:(function
-        | Compound _ -> false
-        | t -> true)
-
+  | Compound ("block",l) ->
+    List.filter l ~f:(function | Compound _ -> false | t -> true)
+  | Compound _ -> failwith "Refusing to normalize top-level delimiters"
 
 let concat_const =
   List.fold ~init:"" ~f:(fun acc -> function
       | Const c -> c^acc
       | _ -> failwith "Only consts allowed")
 
-let concat_const_and_var =
-  List.fold ~init:"" ~f:(fun acc -> function
-      | Const c -> c^acc
-      | Var (s,_) -> s^acc
-      | _ -> failwith "Only consts and vars allowed")
-
-let get_assertion_result solver (lhs : Smtlib.term list) (rhs : Smtlib.term) =
-  Smtlib.assert_ solver (Smtlib.equals (Smtlib.Str.concat lhs) rhs);
+let get_result solver =
   match Smtlib.check_sat solver with
   | Sat -> Smtlib.get_model solver
   | _ -> failwith "Cannot get sat"
 
+let do_decls solver holes =
+  List.iter holes ~f:(fun id ->
+      Smtlib.declare_const solver (Id id) (Sort (Id "String")))
+
 (** Only allow holes in t1 for now. This is not validated yet *)
-let unify_flat env t1 t2 =
-  let solver = make_solver solver_path in
-  let t1 = normalize t1 in
-  let t2 = normalize t2 in
-  let holes_of_term : Term.t list -> string list =
-    List.filter_map ~f:(function | Var (s,_) -> Some s | _ -> None) in
-  let holes = holes_of_term t1 in
-  let add_smt_vars =
-    List.iter ~f:(fun id ->
-        Smtlib.declare_const solver (Id id) (Sort (Id "String"))) in
-  add_smt_vars holes;
-  let rhs = Smtlib.QString (concat_const t2) in
+let unify_flat env lhs rhs =
+  let lhs = normalize lhs in
+  let rhs = normalize rhs in
+  let holes = List.filter_map lhs ~f:(function | Var (s,_) -> Some s | _ -> None) in
+  let rhs = Smtlib.QString (concat_const rhs) in
   let lhs =
-    List.map t1 ~f:(function
-      | Const c -> Smtlib.QString c
-      | Var (v,_) -> Smtlib.Const (Id v)
-      | Compound _ -> failwith "Not allowed")
+    List.map lhs ~f:(function
+        | Const c -> Smtlib.QString c
+        | Var (v,_) -> Smtlib.Const (Id v)
+        | Compound _ -> failwith "Not allowed")
   in
-  let result = get_assertion_result solver lhs rhs in
-  List.iter result ~f:(fun (Id id, term) ->
-      match term with
-      | String s ->
-        Format.printf "id: %s = %s@." id s;
-      | _ ->
-        Format.printf "id %s is a non-string term I didn't expect" id);
+
+  let solve assertions =
+    (* construct z3 calls *)
+    let solver = make_solver solver_path in
+    (* Add holes *)
+    do_decls solver holes;
+    (* Add assertions *)
+    List.iter assertions ~f:(fun term -> Smtlib.assert_ solver term);
+    (* run it *)
+    get_result solver
+  in
+
+  let results : (Smtlib.identifier * Smtlib.term) list list =
+    let rec aux
+        (assertions : Smtlib.term list)
+        (acc : (Smtlib.identifier * Smtlib.term) list list) =
+      try
+        let result = solve assertions in
+        let negation : Smtlib.term =
+          App (Id "and",
+               List.map result ~f:(fun (Id id,term) ->
+                   match term with
+                   | String s -> Smtlib.(not_ (equals (Const (Id id)) (QString s)))
+                   | _ ->
+                     failwith
+                     @@ sprintf "id %s is a non-string term I didn't expect" id)
+              )
+        in
+        aux (negation::assertions) (result::acc)
+      with _ -> acc
+    in
+    aux [(Smtlib.equals (Smtlib.Str.concat lhs) rhs)] []
+  in
+  List.iter results ~f:(fun result ->
+      List.iter result ~f:(fun (Id id, term) ->
+          match term with
+          | String s ->
+            Format.printf "id: %s = %s@." id s;
+          | _ ->
+            Format.printf "id %s is a non-string term I didn't expect" id));
   env
