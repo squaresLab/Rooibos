@@ -10,4 +10,4 @@
 (library
   ((name rooibos)
    (public_name rooibos)
-   (libraries (core_kernel menhirLib))))
+   (libraries (core_kernel menhirLib smtlib))))
