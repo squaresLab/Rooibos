@@ -18,7 +18,7 @@ let rec contains term variable =
 
 
 let rec to_string = function
-  | Var (v, 0) -> v
-  | Var (v, n) -> v ^ string_of_int n
-  | Const c -> c
-  | Compound (f, ls) -> f ^ "(" ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ ")"
+  | Var (v, 0) -> "H(" ^ v ^ ")"
+  | Var (v, n) -> "H(" ^ v ^ ", " ^ (string_of_int n) ^ ")"
+  | Const c -> "C(" ^ c ^ ")"
+  | Compound (f, ls) -> "N_" ^ f ^ "(" ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ ")"
