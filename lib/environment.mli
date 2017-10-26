@@ -17,11 +17,9 @@ val add : t -> variable -> Term.t -> t
     in [env]. *)
 val lookup : t -> variable -> Term.t
 
-(** [substitute env term] substitutes in term [term] values for
-    variables, as specified by environment [env]. It substitutes
-    repeatedly until the terms stops changing, so this is not the
-    usual kind of substitution. It is what we need during
-    unification. *)
+
+(** [substitute env term] substitutes variables in a given term [term]
+    according to a set of bindings provided by environment [env]. *)
 val substitute : t -> Term.t -> Term.t
 
 val to_string : t -> string
