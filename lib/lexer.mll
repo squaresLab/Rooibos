@@ -28,11 +28,11 @@ rule read = parse
 {
   let buf = Buffer.create 17 in
   Buffer.add_char buf c;
-  read_until_hole_or_delimiter buf lexbuf
+  read_const buf lexbuf
 }
 | eof { EOF }
 
-and read_until_hole_or_delimiter buf = parse
+and read_const buf = parse
 | ':' '['
 {
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-2;
@@ -43,5 +43,5 @@ and read_until_hole_or_delimiter buf = parse
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-1;
   CONST (Buffer.contents buf)
 }
-| _ as c  { Buffer.add_char buf c; read_until_hole_or_delimiter buf lexbuf }
+| _ as c  { Buffer.add_char buf c; read_const buf lexbuf }
 | eof     { CONST (Buffer.contents buf) }
