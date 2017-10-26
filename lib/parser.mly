@@ -9,12 +9,14 @@
     | None  -> []
 %}
 
+%token <string> WHITESPACE
 %token <string> CONST
 %token <string> HOLE
 %token LEFT_BRACKET RIGHT_BRACKET
 %token LEFT_BRACE RIGHT_BRACE
 %token LEFT_ANGLE RIGHT_ANGLE
 %token LEFT_PARENTHESIS RIGHT_PARENTHESIS
+%token LINE_BREAK
 %token EOF
 
 %start <Term.t> main
@@ -41,6 +43,7 @@ term:
 | literal                                   { $1 }
 
 literal:
+| LINE_BREAK { Break }
 | CONST     { Const $1 }
 | HOLE      { Var ($1, 0) }
 | HOLE HOLE { raise (ParseError ("Please, no consecutive holes allowed")) }
