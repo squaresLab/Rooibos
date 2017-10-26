@@ -10,6 +10,7 @@
 %}
 
 %token <string> WHITESPACE
+%token <string> SEPARATOR
 %token <string> CONST
 %token <string> HOLE
 %token LEFT_BRACKET RIGHT_BRACKET
@@ -43,6 +44,7 @@ term:
 | literal                                   { $1 }
 
 literal:
+| SEPARATOR { Separator $1 }
 | LINE_BREAK { Break }
 | CONST     { Const $1 }
 | HOLE      { Var ($1, 0) }

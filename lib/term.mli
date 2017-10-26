@@ -1,3 +1,5 @@
+type separator = string
+
 type constant = string
 
 type variable = string * int
@@ -8,6 +10,7 @@ type variable = string * int
     (i.e., compound terms).*)
 type t =
   | Break
+  | Separator of separator
   | Var of variable
   | Const of constant
   | Compound of constant * t list
