@@ -6,9 +6,12 @@ open Parser
 exception SyntaxError of string
 }
 
+let newline = '\n' |'\r' | "\r\n"
+let white = [' ' '\t']+
 let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
 
 rule read = parse
+| newline { LINE_BREAK }
 | "[" { LEFT_BRACKET }
 | "]" { RIGHT_BRACKET }
 | "{" { LEFT_BRACE }
@@ -24,6 +27,12 @@ rule read = parse
   let name = String.chop_suffix_exn name ~suffix:"]" in
   HOLE name
 }
+| white
+{
+  (* ignoring this problem for now...
+     WHITESPACE (Lexing.lexeme lexbuf) *)
+  read lexbuf
+}
 | _ as c
 {
   let buf = Buffer.create 17 in
@@ -34,7 +43,7 @@ rule read = parse
 
 (* read until we hit whitespace, a new line, or some kind of delimiter *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')'
+| ":[" | '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')' | ' ' | '\t' | newline
 {
   let k = String.length (Lexing.lexeme lexbuf) in
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
