@@ -26,6 +26,6 @@ let rec to_string = function
   | Compound (f, ls) ->
     let (prefix, suffix) = match f with
     | "block" -> "<", ">"
-    | _ -> ("N_(" ^ f), ")"
+    | _ -> ("N_" ^ f ^ "("), ")"
     in
        prefix ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ suffix
