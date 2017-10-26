@@ -12,7 +12,7 @@ type t =
   | Compound of constant * t list
 
 (** [contains term var] returns [true] when term [term] contains
-    variable instance [var] *)
+    or is equal to variable instance [var] *)
 val contains : t -> variable -> bool
 
 val to_string : t -> string
