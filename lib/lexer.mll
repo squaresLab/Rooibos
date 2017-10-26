@@ -32,15 +32,12 @@ rule read = parse
 }
 | eof { EOF }
 
+(* read until we hit whitespace, a new line, or some kind of delimiter *)
 and read_const buf = parse
-| ':' '['
+| ":[" | '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')'
 {
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-2;
-  CONST (Buffer.contents buf)
-}
-| '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')'
-{
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-1;
+  let k = String.length (Lexing.lexeme lexbuf) in
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
   CONST (Buffer.contents buf)
 }
 | _ as c  { Buffer.add_char buf c; read_const buf lexbuf }
