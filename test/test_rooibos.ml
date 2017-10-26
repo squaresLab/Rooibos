@@ -110,7 +110,8 @@ let test_unify _ =
     A term unified with :[1] (turn concrete vars into holes)
           i.e., "x = :[1]; x = [:1]"
 
-    Two environments where :[1] = "foo" and :[1] = "bar"? that doesn't make sense...
+    Two environments where :[1] = "foo" and :[1] = "bar"? But I'm not sure
+    that makes sense
 
 *)
 let what_should_this_give _ =
