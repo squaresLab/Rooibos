@@ -43,7 +43,7 @@ and find_list env ts1 ts2 =
     Const c2::start::rest2
     when c1 = c2 ->
     Format.printf "Adding var %s with term %s@." s (Term.to_string start);
-    let env = Environment.add env v (Compound ("block", [start])) in
+    let env = Environment.add env v start in
     find_list env continue rest2
 
   | Var v::((suffix::rest) as continue),
@@ -54,7 +54,10 @@ and find_list env ts1 ts2 =
       | Compound ("block", terms) ->
         let matches = Compound ("block", terms @ [term]) in
         Environment.add env v matches, loc
-      | _ -> failwith "This hole should only ever be compound when matching lists"
+      (* var has only been matched with one term, extend it to be a compound *)
+      | existing_term ->
+        let matches = Compound ("block", [existing_term; term]) in
+        Environment.add env v matches, loc
     end
 
   | [Var v], [term] ->
