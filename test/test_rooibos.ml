@@ -103,28 +103,23 @@ let test_unify _ =
     ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
 
 let test_match _ =
-  let get_1 env = Environment.lookup env ("1",0) in
-  let get_n env n = Environment.lookup env (Int.to_string n, 0) in
-  let env,_ =
-    Option.value_exn
-    (Match.find !"x = :[1];" !"x = foo; x = bar;") in
-  assert_equal
-    ~printer:Term.to_string
-    (!"foo")
-    (get_1 env);
+  let make_env bindings =
+    List.fold bindings
+      ~init:(Environment.create ())
+      ~f:(fun env (v, term) -> Environment.add env (v,0) term)
+  in
+  let env_of_result template source =
+    Option.value_exn (Match.find template source) |> fst in
 
-  let env, _ =
-    Option.value_exn
-    (Match.find !"x = :[1] + :[2];" !"x = a + b; x = c + d;") in
   assert_equal
-    ~printer:Term.to_string
-    (!"a")
-    (get_n env 1);
-  assert_equal
-    ~printer:Term.to_string
-    (!"b")
-    (get_n env 2)
+    ~printer:Environment.to_string
+    (make_env [(("1"), !"foo")])
+    (env_of_result !"x = :[1];" !"x = foo; x = bar;");
 
+  assert_equal
+    ~printer:Environment.to_string
+    (make_env [("1", !"a"); ("2", !"b")])
+    (env_of_result !"x = :[1] + :[2];" !"x = a + b; x = c + d;")
 
   let suite =
     "test" >::: [
