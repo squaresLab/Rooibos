@@ -14,3 +14,5 @@ let make term =
 let range node = node.loc
 
 let term node = node.term
+
+let to_string node = "I WILL BE IMPLEMENTED"

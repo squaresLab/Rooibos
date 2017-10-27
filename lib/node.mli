@@ -9,3 +9,5 @@ val range : 'a t -> Location.Range.t
 
 (* [term node] returns the term associated with node [node]. *)
 val term : 'a t -> 'a
+
+val to_string: 'a t -> string

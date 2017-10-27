@@ -20,32 +20,32 @@
 %token LINE_BREAK
 %token EOF
 
-%start <Term.t> main
+%start <Term.t Node.t> main
 
 %%
 
 main:
-| EOF            { Const "" }
+| EOF            { Node.make (Const "") }
 | terms EOF      { $1 }
 
 terms:
 | term           { $1 }
-| term_list      { Compound ("block", $1) }
+| term_list      { Node.make (Compound ("block", $1)) }
 
 term_list:
 | term           { [$1] }
 | term term_list { $1 :: $2 }
 
 term:
-| LEFT_BRACKET     terms? RIGHT_BRACKET     { Compound ("square", to_list $2) }
-| LEFT_BRACE       terms? RIGHT_BRACE       { Compound ("curly",  to_list $2) }
-| LEFT_ANGLE       terms? RIGHT_ANGLE       { Compound ("angle",  to_list $2) }
-| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { Compound ("round",  to_list $2) }
+| LEFT_BRACKET     terms? RIGHT_BRACKET     { Node.make (Compound ("square", to_list $2)) }
+| LEFT_BRACE       terms? RIGHT_BRACE       { Node.make (Compound ("curly",  to_list $2)) }
+| LEFT_ANGLE       terms? RIGHT_ANGLE       { Node.make (Compound ("angle",  to_list $2)) }
+| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { Node.make (Compound ("round",  to_list $2)) }
 | literal                                   { $1 }
 
 literal:
-| SEPARATOR { Const $1 }
-| LINE_BREAK { Break }
-| CONST     { Const $1 }
-| HOLE      { Var ($1, 0) }
-| HOLE HOLE { raise (ParseError ("Please, no consecutive holes allowed")) }
+| SEPARATOR   { Node.make (Const $1) }
+| LINE_BREAK  { Node.make Break }
+| CONST       { Node.make (Const $1) }
+| HOLE        { Node.make (Var ($1, 0)) }
+| HOLE HOLE   { raise (ParseError ("Please, no consecutive holes allowed")) }
