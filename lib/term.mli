@@ -15,4 +15,7 @@ type t =
     variable instance [var] *)
 val contains : t -> variable -> bool
 
+(** [range term] returns the range of locations covered by term [term]. *)
+val range : t -> Location.Range.t
+
 val to_string : t -> string
