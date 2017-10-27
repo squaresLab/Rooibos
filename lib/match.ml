@@ -34,29 +34,29 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
   | _, _ -> raise NoMatch
 and find_list env ts1 ts2 =
   Format.printf "Matching %s@.\
-                 With     %s@."
+                 With     %s@.@."
     (Term.to_string (Compound ("debug", ts1)))
     (Term.to_string (Compound ("debug", ts2)));
 
   match ts1, ts2 with
-  | Const c1::((Var ((s,_) as v) :: rest1) as continue_),
+  | Const c1::((Var ((s,_) as v) :: rest1) as continue),
     Const c2::start::rest2
     when c1 = c2 ->
     Format.printf "Adding var %s with term %s@." s (Term.to_string start);
     let env = Environment.add env v (Compound ("block", [start])) in
-    find_list env continue_ rest2
+    find_list env continue rest2
 
-  | Var v::(suffix::rest),
-    term::rest2 ->
+  | Var v::((suffix::rest) as continue),
+    ((term::rest2) as continue2) ->
     if suffix = term
-    then find_list env rest rest2
-    else
-      begin match Environment.lookup env v with
-        | Compound ("block", terms) ->
-          let matches = Compound ("block", terms @ [term]) in
-          Environment.add env v matches, loc
-        | _ -> failwith "This hole should only ever be compound when matching lists"
-      end
+    then find_list env continue continue2
+    else begin match Environment.lookup env v with
+      | Compound ("block", terms) ->
+        let matches = Compound ("block", terms @ [term]) in
+        Environment.add env v matches, loc
+      | _ -> failwith "This hole should only ever be compound when matching lists"
+    end
+
   | [Var v], [term] ->
     Environment.add env v term, loc
 
