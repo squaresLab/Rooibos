@@ -58,6 +58,8 @@ and find_list env ts1 ts2 =
     Environment.add env v term, loc
   | [Var v], terms ->
     Environment.add env v (Compound ("block", terms)), loc
+  | term1::rest1, term2::rest2 when term1 = term2 ->
+    find_list env rest1 rest2
   | _, _ -> raise NoMatch
 
 
