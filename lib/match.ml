@@ -15,6 +15,11 @@ let loc =
   ; Range.end_ = { line = 0; column = 0 }
   }
 
+(**
+N_debug(C(x), C(=), H(1), C(;))
+N_debug(C(x), C(=), C(foo), C(;), C(x), C(=), C(bar), C(;))
+*)
+
 let rec find_aux env template source : (Environment.t * Location.Range.t) =
   match template, source with
   | Const c1, Const c2 when c1 = c2 -> env, loc
@@ -28,9 +33,14 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
     (Environment.add env v term), loc
   | _, _ -> raise NoMatch
 and find_list env ts1 ts2 =
+  Format.printf "Matching %s@.\
+                 With     %s@."
+    (Term.to_string (Compound ("debug", ts1)))
+    (Term.to_string (Compound ("debug", ts2)));
   match ts1, ts2 with
-  | Const c1::((Var v :: rest1) as continue_),
+  | Const c1::((Var ((s,_) as v) :: rest1) as continue_),
     Const c2::start::rest2 when c1 = c2 ->
+    Format.printf "Adding var %s with term %s@." s (Term.to_string start);
     let env = Environment.add env v (Compound ("block", [start])) in
     find_list env continue_ rest2
   | Var v::((suffix::rest) as continue_),

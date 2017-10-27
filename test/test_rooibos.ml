@@ -102,11 +102,20 @@ let test_unify _ =
     ([!"a,b,c"; !":"])
     ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
 
+let test_match _ =
+  let get_1 env = Environment.lookup env ("1",0) in
+  let env,_ =
+    Option.value_exn
+    (Match.find !"x = :[1];" !"x = foo; x = bar;") in
+  assert_equal
+    (!"foo")
+    (get_1 env)
 
   let suite =
     "test" >::: [
       "test_parser" >:: test_parser
     ; "test_unify" >:: test_unify
+    ; "test_match" >:: test_match
     ]
 
 let () = run_test_tt_main suite
