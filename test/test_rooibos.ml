@@ -97,6 +97,23 @@ let test_unify _ =
     (!"()")
     (Environment.lookup env ("1",0));
 
+  let env = unify !"x = :[1] + 10;" !"x = y + 10;" in
+  assert_equal
+    (!"y")
+    (Environment.lookup env ("1",0));
+
+  let env = unify !"x = z(10, :[1], y[0]);" !"x = z(10, doot(0), y[0]);" in
+  assert_equal
+    (!"doot(0)")
+    (Environment.lookup env ("1",0));
+
+  let f () = unify !"foo.:[1].val = :[2]" !"foo.val = 100" in
+    assert_raises Unify.NoUnify f;
+
+  (* TODO: what should happen here? *)
+  (* unify !"x = :[1] + :[2]" !"x = a + y + 10" *)
+  (* (a+y, 10) OR (a, y+10)? *)
+
   let env = unify !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x" in
   assert_equal
     ([!"a,b,c"; !":"])
