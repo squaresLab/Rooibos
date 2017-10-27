@@ -25,7 +25,9 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
   | Const c1, Const c2 when c1 = c2 -> env, loc
   | Break, Break -> env, loc
   | Compound ("block", ts1), Compound ("block", ts2) ->
-    find_list env ts1 ts2
+    let r = find_list env ts1 ts2 in
+    Format.printf "XXX@.";
+    r
   | Compound (c1, [b1]), Compound(c2, [b2]) when c1 = c2 ->
     let env, _ = find_aux env b1 b2 in
     env, loc
@@ -67,6 +69,9 @@ and find_list env ts1 ts2 =
     term2::rest2
     when term1 = term2 ->
     find_list env rest1 rest2
+
+  | [], _ ->
+    env, loc
 
   | _, _ -> raise NoMatch
 

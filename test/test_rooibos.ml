@@ -108,6 +108,7 @@ let test_match _ =
     Option.value_exn
     (Match.find !"x = :[1];" !"x = foo; x = bar;") in
   assert_equal
+    ~printer:Term.to_string
     (!"foo")
     (get_1 env)
 
