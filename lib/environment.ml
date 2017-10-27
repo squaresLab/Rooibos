@@ -7,7 +7,7 @@ let create () =
   []
 
 let add env var term =
-  (var,term) :: env
+  List.Assoc.add ~equal:Pervasives.(=) env var term
 
 let rec lookup (env : t) (x : variable) : Term.t =
   match List.Assoc.find ~equal:Pervasives.(=) env x with
