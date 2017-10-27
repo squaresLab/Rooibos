@@ -23,7 +23,7 @@ let rec substitute env node =
   | Compound (c, ls) ->
     let term' = Compound (c, List.map ~f:(substitute env) ls) in
       (* TODO: how should substitution affect locations? *)
-      Node.make term' (*(Node.location node)*)
+      Node.make term' (Node.range node)
   | _ -> node
 
 let to_string env =
