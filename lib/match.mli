@@ -1,7 +1,7 @@
 (** Snippet type? *)
 open Core_kernel
 
-type t = Environment.t * Term.t * Location.t
+type t = Environment.t * Location.t
 
 (* [all tpl src] finds all matches of a template [tpl] in a given source
    code [src]. *)
