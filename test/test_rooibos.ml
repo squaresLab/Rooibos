@@ -104,13 +104,27 @@ let test_unify _ =
 
 let test_match _ =
   let get_1 env = Environment.lookup env ("1",0) in
+  let get_n env n = Environment.lookup env (Int.to_string n, 0) in
   let env,_ =
     Option.value_exn
     (Match.find !"x = :[1];" !"x = foo; x = bar;") in
   assert_equal
     ~printer:Term.to_string
     (!"foo")
-    (get_1 env)
+    (get_1 env);
+
+  let env, _ =
+    Option.value_exn
+    (Match.find !"x = :[1] + :[2];" !"x = a + b; x = c + d;") in
+  assert_equal
+    ~printer:Term.to_string
+    (!"a")
+    (get_n env 1);
+  assert_equal
+    ~printer:Term.to_string
+    (!"b")
+    (get_n env 2)
+
 
   let suite =
     "test" >::: [
