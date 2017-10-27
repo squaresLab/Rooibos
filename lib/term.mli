@@ -7,6 +7,7 @@ type variable = string * int
     (optionally) bracket-delimited sequences of terms
     (i.e., compound terms).*)
 type t =
+  | Break
   | Var of variable
   | Const of constant
   | Compound of constant * t list
