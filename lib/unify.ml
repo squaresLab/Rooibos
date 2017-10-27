@@ -12,6 +12,8 @@ exception NoUnify
 let rec unify_terms env t1 t2 =
   match Environment.substitute env t1, Environment.substitute env t2 with
   | t1, t2 when t1 = t2 -> env
+  | Break, Break -> env
+  | Break, _ -> raise NoUnify
   | (Var y, t) | (t, Var y) ->
     if Term.contains t y then
       raise NoUnify
