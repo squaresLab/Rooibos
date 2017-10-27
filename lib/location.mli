@@ -3,8 +3,8 @@ type t
 module Range : sig
   type k = t
   type nonrec t =
-    { start_ : t
-    ; end_ : t
+    { start : t
+    ; stop : t
     }
 
   (* [make start_ stop_] constructs a location range that spans all characters
