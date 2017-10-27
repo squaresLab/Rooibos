@@ -30,6 +30,9 @@ val offset : t -> int
    [loc] occurs. *)
 val line_no : t -> int
 
+(* [column loc] returns the column number for location [loc]. *)
+val column : t -> int
+
 (* [file_name loc] returns the name of the file at which location
    [loc] occurs. *)
 val file_name : t -> string
