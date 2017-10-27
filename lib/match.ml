@@ -37,16 +37,19 @@ and find_list env ts1 ts2 =
                  With     %s@."
     (Term.to_string (Compound ("debug", ts1)))
     (Term.to_string (Compound ("debug", ts2)));
+
   match ts1, ts2 with
   | Const c1::((Var ((s,_) as v) :: rest1) as continue_),
-    Const c2::start::rest2 when c1 = c2 ->
+    Const c2::start::rest2
+    when c1 = c2 ->
     Format.printf "Adding var %s with term %s@." s (Term.to_string start);
     let env = Environment.add env v (Compound ("block", [start])) in
     find_list env continue_ rest2
-  | Var v::((suffix::rest) as continue_),
+
+  | Var v::(suffix::rest),
     term::rest2 ->
     if suffix = term
-    then find_list env continue_ rest2
+    then find_list env rest rest2
     else
       begin match Environment.lookup env v with
         | Compound ("block", terms) ->
@@ -56,10 +59,15 @@ and find_list env ts1 ts2 =
       end
   | [Var v], [term] ->
     Environment.add env v term, loc
+
   | [Var v], terms ->
     Environment.add env v (Compound ("block", terms)), loc
-  | term1::rest1, term2::rest2 when term1 = term2 ->
+
+  | term1::rest1,
+    term2::rest2
+    when term1 = term2 ->
     find_list env rest1 rest2
+
   | _, _ -> raise NoMatch
 
 
