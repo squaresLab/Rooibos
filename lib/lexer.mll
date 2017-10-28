@@ -9,7 +9,7 @@ exception SyntaxError of string
 let newline = '\n' |'\r' | "\r\n"
 let white = [' ' '\t']+
 let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
-let separators = ',' | ';' | ':'
+let separators = ',' | ';' | ':' | '.'
 
 rule read = parse
 
@@ -18,8 +18,8 @@ rule read = parse
 | "]" { RIGHT_BRACKET }
 | "{" { LEFT_BRACE }
 | "}" { RIGHT_BRACE }
-| "<" { LEFT_ANGLE }
-| ">" { RIGHT_ANGLE }
+(*| "<" { LEFT_ANGLE }*)
+(*| ">" { RIGHT_ANGLE }*)
 | "(" { LEFT_PARENTHESIS }
 | ")" { RIGHT_PARENTHESIS }
 | separators
@@ -49,7 +49,7 @@ rule read = parse
 
 (* read until we hit whitespace, a new line, or some kind of delimiter *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')' | ' ' | '\t' | newline | separators
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators
 {
   let k = String.length (Lexing.lexeme lexbuf) in
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
