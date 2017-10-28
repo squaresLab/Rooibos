@@ -15,138 +15,116 @@ let loc =
   ; Range.end_ = { line = 0; column = 0 }
   }
 
+
+(** Helper function to add a single term to a Var during matching *)
+let add_term env v term =
+  match Environment.lookup env v with
+  | Compound ("block", existing_terms) ->
+    (* Var is a block, so append the new term *)
+    let matches = Compound ("block", existing_terms @ [term]) in
+    Environment.add env v matches
+  | Var _ ->
+    (* Var does not exist, so add a term and continue *)
+    Environment.add env v term
+  (* var has only been matched with one term, extend it to be a compound. and
+     continue *)
+  | existing_term ->
+    let matches = Compound ("block", existing_term::[term]) in
+    Environment.add env v matches
+
+
+(** Helper function to add a multiple terms to a Var during matching *)
+let add_terms env v terms =
+  match Environment.lookup env v with
+  | Compound ("block", existing_terms) ->
+    (* Var is a block, so append the term with hole and stop *)
+    let matches = Compound ("block", existing_terms @ terms) in
+    Environment.add env v matches
+  | Var _ ->
+    (* Var does not exist, so add a block term and stop *)
+    let term = Compound ("block", terms) in
+    Environment.add env v term
+  (* var has only been matched with one term, extend it to be a
+     compound. and continue *)
+  | existing_term ->
+    let matches = Compound ("block", existing_term::terms) in
+    Environment.add env v matches
+
+
 let rec find_aux env template source : (Environment.t * Location.Range.t) =
   match template, source with
   | Const c1, Const c2 when c1 = c2 -> env, loc
   | Break, Break -> env, loc
-  | Compound ("block", ts1), Compound ("block", ts2) ->
-    find_list env ts1 ts2
+  | Compound ("block", lhs), Compound ("block", rhs) ->
+    find_list env lhs rhs
   | Compound (c1, [b1]), Compound(c2, [b2]) when c1 = c2 ->
     let env, _ = find_aux env b1 b2 in
     env, loc
-  | Var ((s,_) as v), term ->
+  | Var v, term ->
     (Environment.add env v term), loc
   | _, _ ->
     raise NoMatch
 
-and find_list env ts1 ts2 =
-  Format.printf "Matching Sz %d %s@.\
+and find_list env lhs rhs =
+  (*Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
-    (List.length ts1)
-    (Term.to_string (Compound ("debug", ts1)))
-    (List.length ts2)
-    (Term.to_string (Compound ("debug", ts2)));
+    (List.length lhs)
+    (Term.to_string (Compound ("debug", lhs)))
+    (List.length rhs)
+    (Term.to_string (Compound ("debug", rhs)));*)
 
-  match ts1, ts2 with
-  | Const c1::((Var ((s,_) as v) :: rest1) as continue),
-    Const c2::start::rest2
+  match lhs, rhs with
+  | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
+    find_list env lhs_tl rhs_tl
+
+  | Const c1::(Var v::lhs_tl as lhs_continue_match),
+    Const c2::start::rhs_tl
     when c1 = c2 ->
-    Format.printf "2. Adding var %s with term %s@." s (Term.to_string start);
     let env = Environment.add env v start in
-    find_list env continue rest2
+    find_list env lhs_continue_match rhs_tl
 
-  | (Var ((s,_) as v)::((suffix::rest) as continue) as all),
-    ((term::rest2) as continue2) ->
+  | Var v::suffix::rest as lhs_continue_match,
+    term::rhs_tl ->
     begin match suffix, term with
-      | Compound (c1, terms1), Compound (c2, terms2)
+      | Compound (c1, terms_lhs), Compound (c2, terms_rhs)
         when c1 = c2 ->
-        Format.printf "Same names, processing everything inside brackets@.";
-        let env,_ = find_list env terms1 terms2 in (* XXX loc *)
-        Format.printf "Done with brackets, continuing with prev list@.";
-        (* do not continue with var. we matched a suffix. we are done.  we also
-           processed everything inside suffix, so we are done there too*)
-        find_list env rest rest2
+        let env,_ = find_list env terms_lhs terms_rhs in (* XXX loc *)
+        (* do not continue with var. we matched a suffix. we are done. we also
+           processed everything inside suffix, so we are done there too *)
+        find_list env rest rhs_tl
       | Const c1, Const c2 when c1 = c2 ->
-        (* we are done with this var, and suffix. continue with rest,rest2 *)
-        find_list env rest rest2
+        (* we are done with this var, and suffix. continue with rest,rhs_tl *)
+        find_list env rest rhs_tl
       (* else, not equal, then... *)
       | _ ->
-        Format.printf "Not equal, time to add things...@.";
-        begin match Environment.lookup env v with
-          | Compound ("block", terms) ->
-            (* Var is a block, so append the term with hole and continue *)
-            let matches = Compound ("block", terms @ [term]) in
-            Format.printf "3. Adding var %s with %s@." s (Term.to_string matches);
-            let env,_ = (Environment.add env v matches), loc in (* XXX *)
-            find_list env continue rest2 (* XXX why is this all *)
-          | Var _ ->
-            (* Var does not exist, so add a term and continue *)
-            Format.printf "4. Adding var %s with %s@." s (Term.to_string term);
-            let env,_ = (Environment.add env v term), loc in (* XXX *)
-            find_list env all rest2
-          (* var has only been matched with one term, extend it to be a
-             compound. and continue *)
-          | existing_term ->
-            Format.printf "Var is currently bound to %s@." (Term.to_string existing_term);
-            let matches = Compound ("block", [existing_term; term]) in
-            Format.printf "5. Adding var %s with %s@." s (Term.to_string matches);
-            let env,_ = (Environment.add env v matches), loc in (* XXX *)
-            find_list env all rest2
-        end
+        let env = add_term env v term in
+        (* XXX fix up loc in add_term *)
+        find_list env lhs_continue_match rhs_tl
     end
 
-  (* kept consuming and adding to var, and reach end. just return env *)
+  (* We kept consuming and adding terms to var's list, and reached the end of
+     source. Just return env *)
   | [Var _], [] ->
     env, loc
 
-  | [Var ((s,_) as v)], [term] ->
-    let new_result =
-      match Environment.lookup env v with
-      | Compound ("block", terms) ->
-        (* Var is a block, so append the term with hole and continue *)
-        let matches = Compound ("block", terms @ [term]) in
-        Format.printf "3. Adding var %s with %s@." s (Term.to_string matches);
-        (Environment.add env v matches), loc (* XXX *)
-      | Var _ ->
-        (* Var does not exist, so add a term and continue *)
-        Format.printf "4. Adding var %s with %s@." s (Term.to_string term);
-        (Environment.add env v term), loc (* XXX *)
-      (* var has only been matched with one term, extend it to be a
-         compound. and continue *)
-      | existing_term ->
-        Format.printf "Var is currently bound to %s@." (Term.to_string existing_term);
-        let matches = Compound ("block", [existing_term; term]) in
-        Format.printf "5. Adding var %s with %s@." s (Term.to_string matches);
-        (Environment.add env v matches), loc  (* XXX *)
-    in
-    new_result
+  | [Var v], [term] ->
+    let env = add_term env v term in (* XXX fix up loc *)
+    env, loc
 
-  | [Var ((s,_) as v)], last_terms ->
-    let new_result =
-      match Environment.lookup env v with
-      | Compound ("block", existing_terms) ->
-        (* Var is a block, so append the term with hole and stop *)
-        let matches = Compound ("block", existing_terms @ last_terms) in
-        Format.printf "3. Adding var %s with %s@." s (Term.to_string matches);
-        (Environment.add env v matches), loc (* XXX *)
-      | Var _ ->
-        (* Var does not exist, so add a block term and stop *)
-        let term = Compound ("block", last_terms) in
-        Format.printf "4. Adding var %s with %s@." s (Term.to_string term);
-        (Environment.add env v term), loc (* XXX *)
-      (* var has only been matched with one term, extend it to be a
-         compound. and continue *)
-      | existing_term ->
-        Format.printf "Var is currently bound to %s@." (Term.to_string existing_term);
-        let matches = Compound ("block", [existing_term] @ last_terms) in
-        Format.printf "5. Adding var %s with %s@." s (Term.to_string matches);
-        (Environment.add env v matches), loc  (* XXX *)
-    in
-    new_result
+  | [Var v], last_terms ->
+    let env = add_terms env v last_terms in
+    env, loc (* XXX fix up loc *)
 
-  | Const c1::rest1, Const c2::rest2 when c1 = c2 ->
-    find_list env rest1 rest2
+  | Compound ("block", lhs)::lhs_tl, Compound ("block", rhs)::rhs_tl ->
+    let env,_ = find_list env lhs rhs in (* XXX take care of loc *)
+    find_list env lhs_tl rhs_tl
 
-  | Compound ("block", ts1)::rest1, Compound ("block", ts2)::rest2 ->
-    let env,_ = find_list env ts1 ts2 in (* XXX what about loc *)
-    find_list env rest1 rest2
+  | Compound (c1, [b1])::lhs_tl, Compound (c2, [b2])::rhs_tl ->
+    let env,_ = find_aux env b1 b2 in (* XXX take care of loc *)
+    find_list env lhs_tl rhs_tl
 
-  | Compound (c1, [b1])::rest1, Compound (c2, [b2])::rest2 ->
-    let env,_ = find_aux env b1 b2 in
-    find_list env rest1 rest2
-
-  | Compound (c1, [])::rest1, Compound (c2, [])::rest2 ->
-    find_list env rest1 rest2
+  | Compound (c1, [])::lhs_tl, Compound (c2, [])::rhs_tl ->
+    find_list env lhs_tl rhs_tl
 
   | [], _ ->
     env, loc
