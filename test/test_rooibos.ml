@@ -130,8 +130,12 @@ let test_match _ =
     (env_of_result !":[1],:[2]" !"x,y");
 
   assert_equal
-    (make_env [("1", !"x"); ("2", !"y")])
-    (env_of_result !".:[1],:[2]." !".x,y.");
+    (make_env [("1", !"foo[0][1]")])
+    (env_of_result !"x = :[1];" !"x = foo[0][1];");
+
+  assert_equal
+    (make_env [("1", !"[0][1]")])
+    (env_of_result !"x = foo:[1];" !"x = foo[0][1];");
 
   assert_equal
     (make_env [("1", !"x"); ("2", !"y")])
@@ -169,12 +173,29 @@ let test_match _ =
     (make_env [("1", !"()()()")])
     (env_of_result !"{():[1]}" !"{()()()()}");
 
-
   assert_equal
     (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
-    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}")
+    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
+
+  assert_equal
+    (make_env [("1", !".")])
+    (env_of_result !"foo:[1]val = 100" !"foo.val = 100");
+
+  assert_equal
+    None
+    (Match.find !"foo.:[1].val = :[2]" !"foo.val = 100")
+
+
 
 let not_handled_tests _ =
+  (* this case must still be handled: match hole to empty string *)
+  let _' _ =
+    assert_equal
+      ~printer:Environment.to_string
+      (make_env [("1", !"")])
+      (env_of_result !"foo.:[1]val = 100" !"foo.val = 100")
+  in
+
   (* this case does not match because we don't split up characters *)
   let _' _ =
     assert_equal
