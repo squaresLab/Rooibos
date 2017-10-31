@@ -7,7 +7,7 @@ let create () =
   []
 
 let add env var term =
-  (var,term) :: env
+  List.Assoc.add ~equal:Pervasives.(=) env var term
 
 let rec lookup (env : t) (x : variable) : Term.t =
   match List.Assoc.find ~equal:Pervasives.(=) env x with
@@ -18,7 +18,7 @@ let rec substitute env = function
   | Var x as e ->
     (let e' = lookup env x in
      if e = e' then e' else substitute env e')
-  | Const _ as e -> e
+  | Const _ | Break as e -> e
   | Compound (c, ls) -> Compound (c, List.map ~f:(substitute env) ls)
 
 let to_string env =

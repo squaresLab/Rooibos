@@ -26,6 +26,7 @@ let test_parser _ =
   !"()x()" |> ignore;
   !"{a{[x[z]y]({})}b}d" |> ignore;
   !"(x(:[_]()))" |> ignore;
+  !"if (x < y) {}" |> ignore;
 
   assert_fails_with_message
     ":1:2: syntax error in {\n"
@@ -54,53 +55,189 @@ let test_parser _ =
     (fun () -> !":[_]:[_]:[_]")
 
 
-let test_unify _ =
-  let unify = Unify.unify_terms (Environment.create ()) in
 
-  let env = unify !"(x(:[1]()))" !"(x(y()))" in
-  assert_equal
-    (Term.Const "y")
-    (Environment.lookup env ("1",0));
+let make_env bindings =
+  List.fold bindings
+    ~init:(Environment.create ())
+    ~f:(fun env (v, term) -> Environment.add env (v,0) term)
 
-  let env = unify !"(:[2](:[1]()))" !"(x(y()))" in
-  assert_equal
-    ([Term.Const "y"; Term.Const "x"])
-    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)]);
+let env_of_result template source =
+  Option.value_exn (Match.find template source) |> fst
 
-  let env = unify !":[1]" !"(x(y()))" in
-  assert_equal
-    ~printer:Term.to_string
-    (!"(x(y()))")
-    (Environment.lookup env ("1",0));
+let printer = Environment.to_string
 
-  let env = unify !":[1]" !"x()x" in
+let test_match _ =
   assert_equal
-    ~printer:Term.to_string
-    (!"x()x")
-    (Environment.lookup env ("1",0));
+    ~printer
+    (make_env [(("1"), !"foo")])
+    (env_of_result !"x = :[1];" !"x = foo; x = bar;");
 
-  let env = unify !"x(y:[1])" !"x(y(z()))" in
   assert_equal
-    ~printer:Term.to_string
-    (!"(z())")
-    (Environment.lookup env ("1",0));
+    ~printer
+    (make_env [("1", !"a"); ("2", !"b")])
+    (env_of_result !"x = :[1] + :[2];" !"x = a + b; x = c + d;");
 
-  let env = unify !"x(y(:[1]))" !"x(y(z()))" in
   assert_equal
-    ~printer:Term.to_string
-    (!"z()")
-    (Environment.lookup env ("1",0));
+    (make_env [("1", !"y")])
+    (env_of_result !"(x(:[1]()))" !"(x(y()))");
 
-  let env = unify !"x:[1]x" !"x()x" in
   assert_equal
-    ~printer:Term.to_string
-    (!"()")
-    (Environment.lookup env ("1",0));
+    (make_env [("1", !"y()")])
+    (env_of_result !"(:[1])" !"(y())");
 
-  let env = unify !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x" in
   assert_equal
-    ([!"a,b,c"; !":"])
-    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
+    (make_env [("1", !"x = y")])
+    (env_of_result !"{ :[1]; }" !"{ x = y; }");
+
+  assert_equal
+    (make_env [("1", !"x"); ("2", !"y()")])
+    (env_of_result !"(:[1](:[2]))" !"(x(y()))");
+
+  assert_equal
+    (make_env [("1", !"x"); ("2", !"y")])
+    (env_of_result !"(:[1](:[2]()))" !"(x(y()))");
+
+  assert_equal
+    (make_env [("1", !"x"); ("2", !"y")])
+    (env_of_result !"(:[1](:[2]()))" !"(x(y()))");
+
+  assert_equal
+    (make_env [("1", !"(x(y()))")])
+    (env_of_result !":[1]" !"(x(y()))");
+
+  assert_equal
+    (make_env [("1", !"x()x")])
+    (env_of_result !":[1]" !"x()x");
+
+  assert_equal
+    (make_env [("1", !"z()")])
+    (env_of_result !"x(y(:[1]))" !"x(y(z()))");
+
+  assert_equal
+    (make_env [("1", !"()")])
+    (env_of_result !"x:[1]x" !"x()x");
+
+  assert_equal
+    (make_env [("1", !"()")])
+    (env_of_result !"x:[1]x" !"x()x");
+
+  assert_equal
+    (make_env [("1", !"a,b,c"); ("2", !":")])
+    (env_of_result !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x");
+
+  assert_equal
+    (make_env [("1", !"x"); ("2", !"y")])
+    (env_of_result !":[1],:[2]" !"x,y");
+
+  assert_equal
+    (make_env [("1", !"foo[0][1]")])
+    (env_of_result !"x = :[1];" !"x = foo[0][1];");
+
+  assert_equal
+    (make_env [("1", !"[0][1]")])
+    (env_of_result !"x = foo:[1];" !"x = foo[0][1];");
+
+  assert_equal
+    (make_env [("1", !"x"); ("2", !"y")])
+    (env_of_result !"strcpy(:[1],:[2])" !"strcpy(x,y)");
+
+  assert_equal
+    (make_env [("1", !"3"); ("2", !"x = y")])
+    (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > 3) { x = y; }");
+
+  assert_equal
+    (make_env [("1", !"f()"); ("2", !"x = y")])
+    (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
+
+  assert_equal
+    (make_env [("1", !"f()")])
+    (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
+
+  assert_equal
+    (make_env [("1", !"f()()"); ("2", !"x = y")])
+    (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()()) { x = y; }");
+
+  assert_equal
+    (make_env [("1", !"()()()()")])
+    (env_of_result !"{:[1]}" !"{()()()()}");
+
+  assert_equal
+    (make_env [("1", !"()")])
+    (env_of_result !"{()()():[1]}" !"{()()()()}");
+
+  assert_equal
+    (make_env [("1", !"()()")])
+    (env_of_result !"{()()():[1]}" !"{()()()()()}");
+
+  assert_equal
+    (make_env [("1", !"()()()")])
+    (env_of_result !"{():[1]}" !"{()()()()}");
+
+  assert_equal
+    (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
+    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
+
+  assert_equal
+    (make_env [("1", !".")])
+    (env_of_result !"foo:[1]val = 100" !"foo.val = 100");
+
+  assert_equal
+    None
+    (Match.find !"foo.:[1].val = :[2]" !"foo.val = 100")
+
+
+
+let not_handled_tests _ =
+  (* this case must still be handled: match hole to empty string *)
+  let _' _ =
+    assert_equal
+      ~printer:Environment.to_string
+      (make_env [("1", !"")])
+      (env_of_result !"foo.:[1]val = 100" !"foo.val = 100")
+  in
+
+  (* this case does not match because we don't split up characters *)
+  let _' _ =
+    assert_equal
+      ~printer:Environment.to_string
+      (make_env [("1", !"a")])
+      (env_of_result !":[1]a" !"aa")
+  in
+
+  (* this case does not match because we are matching:
+     <C(H), C(a)> with
+     <C(a), C(a)
+
+     This hits the case where the suffix of C(H), C(a), matches the
+     thing we are matching against (non-greedy), and stops matching.
+     We are looking ahead one only.
+
+     Question: would it be safe to
+     continue sliding the source until we see the last C(a)?
+     Answer: No. In general, we do not know when to stop without
+     infinite look ahead. Consider this case:
+
+     "a a :[1] a a a" to match with
+     "a a a a  a a a"
+
+     Now :[1] needs to match with "a a", but we would not know to collect up
+     to two a's before the common suffixes match, becuase to kno that we need
+     to look three characters ahead (not one). In the worst case we need to
+     look ahead infinitely. In general, we should decide whether to just not
+     bother with this case. *)
+
+  let _' _ =
+    assert_equal
+      ~printer:Environment.to_string
+      (make_env [("1", !"a")])
+      (env_of_result !":[1] a" !"a a");
+
+    assert_equal
+      ~printer:Environment.to_string
+      (make_env [("1", !"a a")])
+      (env_of_result !":a [1] a" !"a a")
+  in
+  ()
 
 let test_printer _ =
   let term = !"x()" in
@@ -136,7 +273,8 @@ let test_printer _ =
   let suite =
     "test" >::: [
       "test_parser" >:: test_parser
-    ; "test_unify" >:: test_unify
+    ; "test_match" >:: test_match
+    ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ]
 

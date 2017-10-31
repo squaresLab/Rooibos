@@ -7,6 +7,7 @@ type variable = string * int
     (optionally) bracket-delimited sequences of terms
     (i.e., compound terms).*)
 type t =
+  | Break
   | Var of variable
   | Const of constant
   | Compound of constant * t list
@@ -14,5 +15,8 @@ type t =
 (** [contains term var] returns [true] when term [term] contains
     variable instance [var] *)
 val contains : t -> variable -> bool
+
+(** [range term] returns the range of locations covered by term [term]. *)
+val range : t -> Location.Range.t
 
 val to_string : t -> string

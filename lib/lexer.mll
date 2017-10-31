@@ -6,44 +6,54 @@ open Parser
 exception SyntaxError of string
 }
 
+let newline = '\n' |'\r' | "\r\n"
+let white = [' ' '\t']+
 let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
+let separators = ',' | ';' | ':' | '.'
 
 rule read = parse
+
+| newline { LINE_BREAK }
 | "[" { LEFT_BRACKET }
 | "]" { RIGHT_BRACKET }
 | "{" { LEFT_BRACE }
 | "}" { RIGHT_BRACE }
-| "<" { LEFT_ANGLE }
-| ">" { RIGHT_ANGLE }
+(*| "<" { LEFT_ANGLE }*)
+(*| ">" { RIGHT_ANGLE }*)
 | "(" { LEFT_PARENTHESIS }
 | ")" { RIGHT_PARENTHESIS }
+| separators
+{
+  SEPARATOR (Lexing.lexeme lexbuf)
+}
 | hole
 {
-  let buf = Buffer.create 17 in
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  let name = Buffer.contents buf in
+  let name = Lexing.lexeme lexbuf in
   let name = String.chop_prefix_exn name ~prefix:":[" in
   let name = String.chop_suffix_exn name ~suffix:"]" in
   HOLE name
+}
+| white
+{
+  (* ignoring this problem for now...
+     WHITESPACE (Lexing.lexeme lexbuf) *)
+  read lexbuf
 }
 | _ as c
 {
   let buf = Buffer.create 17 in
   Buffer.add_char buf c;
-  read_until_hole_or_delimiter buf lexbuf
+  read_const buf lexbuf
 }
 | eof { EOF }
 
-and read_until_hole_or_delimiter buf = parse
-| ':' '['
+(* read until we hit whitespace, a new line, or some kind of delimiter *)
+and read_const buf = parse
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators
 {
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-2;
+  let k = String.length (Lexing.lexeme lexbuf) in
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
   CONST (Buffer.contents buf)
 }
-| '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')'
-{
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos-1;
-  CONST (Buffer.contents buf)
-}
-| _ as c  { Buffer.add_char buf c; read_until_hole_or_delimiter buf lexbuf }
+| _ as c  { Buffer.add_char buf c; read_const buf lexbuf }
 | eof     { CONST (Buffer.contents buf) }
