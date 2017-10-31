@@ -239,12 +239,43 @@ let not_handled_tests _ =
   in
   ()
 
+let test_printer _ =
+  let term = !"x()" in
+  assert_equal
+    ("x()")
+    (Printer.to_string term);
+
+  let term = !":[1]" in
+  assert_equal
+    (":[1]")
+    (Printer.to_string term);
+
+  let env =
+    let env = Environment.create () in
+    Environment.add env ("1",0) (Term.Const ":)") in
+  let term =
+    !":[1]"
+    |> Environment.substitute env in
+  assert_equal
+    (":)")
+    (Printer.to_string term);
+
+  let env =
+    let env = Environment.create () in
+    Environment.add env ("1",0) (Term.Const "dst") in
+  let term =
+    !"strcpy(:[1],src)"
+    |> Environment.substitute env in
+  assert_equal
+    ("strcpy(dst,src)")
+    (Printer.to_string term)
 
   let suite =
     "test" >::: [
       "test_parser" >:: test_parser
     ; "test_match" >:: test_match
     ; "not_handled_tests" >:: not_handled_tests
+    ; "test_printer" >:: test_printer
     ]
 
 let () = run_test_tt_main suite
