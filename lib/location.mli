@@ -18,6 +18,8 @@ module Range : sig
   val stop : t -> k
 
   val to_string : t -> string
+
+  val mock : t
 end
 
 (* [make] constructs a location from a lexer position [pos] *)

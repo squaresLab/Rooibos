@@ -10,6 +10,13 @@ type t =
 let to_string loc =
   loc.file_name ^ ":" ^ (Int.to_string loc.line_no) ^ ":" ^ (Int.to_string loc.offset)
 
+let mock =
+  { offset = 0
+  ; line_no = 0
+  ; column = 0
+  ; file_name = "foo.c"
+  }
+
 module Range = struct
   type k = t 
   type nonrec t =
@@ -27,6 +34,9 @@ module Range = struct
   let loc_to_s = to_string
   let to_string range =
     (loc_to_s range.start) ^ "::" ^ (loc_to_s range.stop)
+
+  let mock_loc = mock
+  let mock = make mock_loc mock_loc
 end
 
 let make pos =

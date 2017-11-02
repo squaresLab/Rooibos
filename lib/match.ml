@@ -9,11 +9,7 @@ exception NoMatch
 let all template source =
   Sequence.empty
 
-let loc =
-  let open Location in
-  { Range.start_ = { line = 0; column = 0 }
-  ; Range.end_ = { line = 0; column = 0 }
-  }
+let loc = Location.Range.mock
 
 (**
 N_debug(C(x), C(=), H(1), C(;))
