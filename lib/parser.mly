@@ -8,9 +8,9 @@
     | Some x -> [x]
     | None  -> []
 
-  let wrap term =
-    let start = Location.make (Parsing.symbol_start_pos ()) in
-    let stop = Location.make (Parsing.symbol_start_pos ()) in
+  let wrap term (start : Lexing.position) (stop : Lexing.position) =
+    let start = Location.make start in
+    let stop = Location.make stop in
     let range = Location.Range.make start stop in
       Node.make term range
 %}
@@ -31,27 +31,27 @@
 %%
 
 main:
-| EOF            { wrap (Const "") }
+| EOF            { wrap (Const "") $startpos $endpos }
 | terms EOF      { $1 }
 
 terms:
 | term           { $1 }
-| term_list      { wrap (Compound ("block", $1)) }
+| term_list      { wrap (Compound ("block", $1)) $startpos $endpos }
 
 term_list:
 | term           { [$1] }
 | term term_list { $1 :: $2 }
 
 term:
-| LEFT_BRACKET     terms? RIGHT_BRACKET     { wrap (Compound ("square", to_list $2)) }
-| LEFT_BRACE       terms? RIGHT_BRACE       { wrap (Compound ("curly",  to_list $2)) }
-| LEFT_ANGLE       terms? RIGHT_ANGLE       { wrap (Compound ("angle",  to_list $2)) }
-| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { wrap (Compound ("round",  to_list $2)) }
+| LEFT_BRACKET     terms? RIGHT_BRACKET     { wrap (Compound ("square", to_list $2)) $startpos $endpos }
+| LEFT_BRACE       terms? RIGHT_BRACE       { wrap (Compound ("curly",  to_list $2)) $startpos $endpos }
+| LEFT_ANGLE       terms? RIGHT_ANGLE       { wrap (Compound ("angle",  to_list $2)) $startpos $endpos }
+| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { wrap (Compound ("round",  to_list $2)) $startpos $endpos }
 | literal                                   { $1 }
 
 literal:
-| SEPARATOR   { wrap (Const $1) }
-| LINE_BREAK  { wrap Break }
-| CONST       { wrap (Const $1) }
-| HOLE        { wrap (Var ($1, 0)) }
+| SEPARATOR   { wrap (Const $1) $startpos $endpos }
+| LINE_BREAK  { wrap Break $startpos $endpos }
+| CONST       { wrap (Const $1) $startpos $endpos }
+| HOLE        { wrap (Var ($1, 0)) $startpos $endpos }
 | HOLE HOLE   { raise (ParseError ("Please, no consecutive holes allowed")) }
