@@ -1,16 +1,30 @@
-open Core_kernel
+open Core
 open Rooibos
 open Lexing
 
+let pp_position formatter lexbuf =
+  let pos = lexbuf.lex_curr_p in
+  Format.fprintf formatter "%s:%d:%d" pos.pos_fname
+    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+
+let to_term s =
+  let lexbuf = Lexing.from_string s in
+  try Parser.main Lexer.read lexbuf with
+  | Parser.Error ->
+    failwith (Format.asprintf "%a: syntax error in %s\n" pp_position lexbuf s)
+
 let () =
-  let matcher = "(x(:[1]()))" in
-  let source = "(x(y()))" in
-  let syntax_matcher = Parser.main Lexer.read (Lexing.from_string matcher) in
-  let syntax_source = Parser.main Lexer.read (Lexing.from_string source) in
-  Format.printf "parsed matcher: %s@." @@ Term.to_string syntax_matcher;
-  Format.printf "parsed source:  %s@." @@ Term.to_string syntax_source;
-  let environment =
-    try Unify.unify_terms (Environment.create ()) syntax_matcher syntax_source with
-    | Unify.NoUnify -> failwith @@ sprintf "Could not unify %s and %s" matcher source
-  in
-  Format.printf "%s@." @@ Environment.to_string environment
+  match Array.to_list Sys.argv with
+  | _ :: template :: source :: rewrite_template :: _ ->
+    let template = In_channel.read_all template in
+    let source = In_channel.read_all source in
+    let rewrite_template = In_channel.read_all rewrite_template in
+    begin match Match.find (to_term template) (to_term source) with
+      | Some (env,_) ->
+        Format.printf "Match: %s@." (Environment.to_string env);
+        let rewritten = Environment.substitute env (to_term rewrite_template) in
+        Format.printf "%s" (Printer.to_string rewritten)
+      | None ->
+        Format.printf "No Match@."
+    end
+  | _ -> failwith "Unknown arguments"
