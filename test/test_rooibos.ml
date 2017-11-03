@@ -112,23 +112,16 @@ let test_match _ =
     (env_of_result !"x = :[1] + :[2];" !"x = a + b; x = c + d;")
 
 let test_location _ =
-  let code : string =
-    {|
-      if (x < 3) {
-        exit(0);
-      }
-    |}
-    |> format
-  in
   let open Location.Range in
-  let node : Term.t Node.t = !code in
+  (* converts loc to a string of the form "line:col" *)
   let l loc =
-    Printf.sprintf "%d:%d" (Location.line_no loc) (Location.offset loc)
+    Printf.sprintf "%d:%d" (Location.line_no loc) (Location.column loc)
   in
+
+  let node = !"x = y + z;" in
   let { start; stop } = Node.range node in
-  let start, stop = (l start), (l stop) in
-    assert_equal ~printer:ident "3:0" stop;
-    assert_equal ~printer:ident "0:0" start;
+    assert_equal ~printer:ident "1:1" (l start);
+    assert_equal ~printer:ident "1:10" (l stop)
 
 (*
  let locs = node_to_locs node in
