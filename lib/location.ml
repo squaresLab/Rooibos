@@ -8,7 +8,7 @@ type t =
   }
 
 let to_string loc =
-  loc.file_name ^ ":" ^ (Int.to_string loc.line_no) ^ ":" ^ (Int.to_string loc.offset)
+  loc.file_name ^ ":" ^ (Int.to_string loc.line_no) ^ ":" ^ (Int.to_string loc.column)
 
 let mock =
   { offset = 0
@@ -43,7 +43,7 @@ let make pos =
   let open Lexing in
     { offset = pos.pos_cnum
     ; line_no = pos.pos_lnum
-    ; column = (pos.pos_cnum - pos.pos_bol + 1)
+    ; column = pos.pos_cnum - pos.pos_bol (* TO SET POS_BOL *)
     ; file_name = pos.pos_fname
     }
 
