@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Format
 
 val to_string : Term.t -> string

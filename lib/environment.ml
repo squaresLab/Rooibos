@@ -1,4 +1,4 @@
-open Core_kernel
+open Core
 open Term
 
 type t = (variable, Term.t) List.Assoc.t

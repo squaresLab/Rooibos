@@ -1,5 +1,4 @@
-(** Snippet type? *)
-open Core_kernel
+open Core
 
 type t = Environment.t * Location.Range.t
 
