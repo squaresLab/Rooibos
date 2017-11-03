@@ -121,7 +121,19 @@ let test_location _ =
   let node = !"x = y + z;" in
   let { start; stop } = Node.range node in
     assert_equal ~printer:ident "1:1" (l start);
-    assert_equal ~printer:ident "1:10" (l stop)
+    assert_equal ~printer:ident "1:10" (l stop);
+
+  let src =
+    {|
+      x = 0;
+      y = 1;
+    |}
+    |> format
+  in
+  let node = !src in
+  let { start; stop } = Node.range node in
+    assert_equal ~printer:ident "1:1" (l start);
+    assert_equal ~printer:ident "3:0" (l stop)
 
 (*
  let locs = node_to_locs node in
