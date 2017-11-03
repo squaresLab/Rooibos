@@ -11,6 +11,11 @@
   let wrap term (start : Lexing.position) (stop : Lexing.position) =
     let start = Location.make start in
     let stop = Location.make stop in
+      Format.printf
+        "%s\t[%d:%d::%d:%d]\n"
+        (Term.to_string term)
+        (Location.line_no start) (Location.column start)
+        (Location.line_no stop) (Location.column stop);
     let range = Location.Range.make start stop in
       Node.make term range
 %}
@@ -43,10 +48,10 @@ term_list:
 | term term_list { $1 :: $2 }
 
 term:
-| LEFT_BRACKET     terms? RIGHT_BRACKET     { wrap (Compound ("square", to_list $2)) $startpos $endpos }
-| LEFT_BRACE       terms? RIGHT_BRACE       { wrap (Compound ("curly",  to_list $2)) $startpos $endpos }
-| LEFT_ANGLE       terms? RIGHT_ANGLE       { wrap (Compound ("angle",  to_list $2)) $startpos $endpos }
-| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { wrap (Compound ("round",  to_list $2)) $startpos $endpos }
+| LEFT_BRACKET     terms? RIGHT_BRACKET     { wrap (Compound ("square", to_list $2)) $startpos $endpos($3) }
+| LEFT_BRACE       terms? RIGHT_BRACE       { wrap (Compound ("curly",  to_list $2)) $startpos $endpos($3) }
+| LEFT_ANGLE       terms? RIGHT_ANGLE       { wrap (Compound ("angle",  to_list $2)) $startpos $endpos($3) }
+| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { wrap (Compound ("round",  to_list $2)) $startpos $endpos($3) }
 | literal                                   { $1 }
 
 literal:
