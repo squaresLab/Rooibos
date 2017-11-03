@@ -51,9 +51,15 @@ let add_terms env v terms =
     Environment.add env v matches
 
 
+let rec skip_until_not_white =
+  function
+  | White _::tl -> skip_until_not_white tl
+  | x -> x
+
 let rec find_aux env template source : (Environment.t * Location.Range.t) =
   match template, source with
   | Const c1, Const c2 when c1 = c2 -> env, loc
+  | White _, _ | _, White _ -> env, loc
   | Break, Break -> env, loc
   | Compound ("block", lhs), Compound ("block", rhs) ->
     find_list env lhs rhs
@@ -66,25 +72,41 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
     raise NoMatch
 
 and find_list env lhs rhs =
-  (*Format.printf "Matching Sz %d %s@.\
+  Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
     (List.length lhs)
     (Term.to_string (Compound ("debug", lhs)))
     (List.length rhs)
-    (Term.to_string (Compound ("debug", rhs)));*)
+    (Term.to_string (Compound ("debug", rhs)));
 
   match lhs, rhs with
   | Break::lhs_tl, Break::rhs_tl ->
-    find_list env lhs_tl rhs_tl
+    find_list env (skip_until_not_white lhs_tl) (skip_until_not_white rhs_tl)
+
+  | White _::lhs_tl, rhs ->
+    find_list env (skip_until_not_white lhs_tl) rhs
+
+  | lhs, White _::rhs_tl ->
+    find_list env lhs (skip_until_not_white rhs_tl)
 
   | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
-    find_list env lhs_tl rhs_tl
+    find_list env (skip_until_not_white lhs_tl) (skip_until_not_white rhs_tl)
 
   | Const c1::(Var v::lhs_tl as lhs_continue_match),
-    Const c2::start::rhs_tl
+    Const c2::rhs_tl
     when c1 = c2 ->
-    let env = Environment.add env v start in
-    find_list env lhs_continue_match rhs_tl
+    begin match skip_until_not_white rhs_tl with
+      | start::rhs_tl ->
+        let env = Environment.add env v start in
+        find_list env lhs_continue_match rhs_tl
+      | [] ->
+        (* do not bind var, there is nothing left... *)
+        env, loc
+      end
+
+  (* chomp anything after Var that is whitespace *)
+  | Var v::White _::rest, rhs ->
+    find_list env (Var v::rest) rhs
 
   | Var v::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
@@ -100,6 +122,7 @@ and find_list env lhs rhs =
         find_list env rest rhs_tl
       (* else, not equal, then... *)
       | _ ->
+        Format.printf "Associating %s with %s@." (fst v) (Term.to_string term);
         let env = add_term env v term in
         (* XXX fix up loc in add_term *)
         find_list env lhs_continue_match rhs_tl
@@ -110,10 +133,12 @@ and find_list env lhs rhs =
   | [Var _], [] ->
     env, loc
 
+  (* Care: white space? *)
   | [Var v], [term] ->
     let env = add_term env v term in (* XXX fix up loc *)
     env, loc
 
+  (* Care: white space? *)
   | [Var v], last_terms ->
     let env = add_terms env v last_terms in
     env, loc (* XXX fix up loc *)
@@ -133,6 +158,7 @@ and find_list env lhs rhs =
     env, loc
 
   | _, _ ->
+    Format.printf "Failboat";
     raise NoMatch
 
 

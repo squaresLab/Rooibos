@@ -8,6 +8,7 @@ type variable = string * int
     (i.e., compound terms).*)
 type t =
   | Break
+  | White of constant
   | Var of variable
   | Const of constant
   | Compound of constant * t list

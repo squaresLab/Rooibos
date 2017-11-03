@@ -86,6 +86,7 @@ let test_match _ =
     (env_of_result !"(:[1])" !"(y())");
 
   assert_equal
+    ~printer:Environment.to_string
     (make_env [("1", !"x = y")])
     (env_of_result !"{ :[1]; }" !"{ x = y; }");
 
