@@ -10,6 +10,35 @@ let pp_position formatter lexbuf =
   Format.fprintf formatter "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
+(* converts a node into a sequence of locations *)
+let rec node_to_locs (node : Term.t Node.t) : Location.t list =
+  let open Term in
+  let range = Node.range node in
+  let start r = Location.Range.start r in
+  let stop r = Location.Range.stop r in
+  match Node.term node with
+  | Break ->
+      [start range]
+  | Const _ ->
+      [start range; stop range]
+  | Var _ ->
+      [start range; stop range]
+  | Compound (_, l) ->
+    let mid = List.concat (List.map ~f:node_to_locs l) in
+      [start range] @ mid @ [stop range]
+
+(* DANGER: copy pasto *)
+let format s =
+  let s = s |> String.chop_prefix_exn ~prefix:"\n"
+  in
+  let leading_indentation =
+    Option.value_exn (String.lfindi s ~f:(fun _ c -> c <> ' '))
+  in
+  s
+  |> String.split ~on:'\n'
+  |> List.map ~f:(Fn.flip String.drop_prefix leading_indentation)
+  |> String.concat ~sep:"\n"
+
 let (!) s =
   let lexbuf = Lexing.from_string s in
   try Parser.main Lexer.read lexbuf with
@@ -82,10 +111,51 @@ let test_match _ =
     (make_env [("1", !"a"); ("2", !"b")])
     (env_of_result !"x = :[1] + :[2];" !"x = a + b; x = c + d;")
 
+let test_location _ =
+  let code : string =
+    {|
+      if (x < 3) {
+        exit(0);
+      }
+    |}
+    |> format
+  in
+  let open Location.Range in
+  let node : Term.t Node.t = !code in
+  let l loc =
+    Printf.sprintf "%d:%d" (Location.line_no loc) (Location.offset loc)
+  in
+  let { start; stop } = Node.range node in
+  let start, stop = (l start), (l stop) in
+    assert_equal ~printer:ident "3:0" stop;
+    assert_equal ~printer:ident "0:0" start;
+
+(*
+ let locs = node_to_locs node in
+  let expected =
+    [(0, 0); (2, 0); (* if *)
+     (3, 0); (* ( *)
+     (4, 0); (4, 0); (* x *)
+     (6, 0); (6, 0); (* < *)
+     (8, 0); (8, 0); (* 3 *)
+     (9, 0); (9, 0); (* ) *)
+     (11, 0); (11, 0); (* { *)
+     (2, 1); (6, 1); (* exit *)
+     (7, 1); (7, 1); (* ( *)
+     (8, 1); (8, 1); (* 0 *)
+     (9, 1); (9, 1); (* ) *)
+     (10, 1); (10, 1); (* ; *)
+     (0, 2); (* } *)
+    ]
+  in
+*)
+
+
 let suite =
   "test" >::: [
     "test_parser" >:: test_parser
   ; "test_match" >:: test_match
+  ; "test_location" >:: test_location
   ]
 
 let () = run_test_tt_main suite
