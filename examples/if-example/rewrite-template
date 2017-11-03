@@ -1,0 +1,4 @@
+if (:[1]) {
+  fclose(1);
+  return 0;
+}
