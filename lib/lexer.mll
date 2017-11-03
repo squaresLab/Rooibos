@@ -13,13 +13,23 @@ let separators = ',' | ';' | ':'
 
 rule read = parse
 
-| newline { LINE_BREAK }
+| newline
+{
+  let pos = lexbuf.lex_curr_p in
+    lexbuf.lex_curr_p <-
+      { pos with  
+        pos_bol = pos.pos_cnum
+      ; pos_lnum = pos.pos_lnum + 1 };
+    LINE_BREAK
+}
 | "[" { LEFT_BRACKET }
 | "]" { RIGHT_BRACKET }
 | "{" { LEFT_BRACE }
 | "}" { RIGHT_BRACE }
+(*
 | "<" { LEFT_ANGLE }
 | ">" { RIGHT_ANGLE }
+*)
 | "(" { LEFT_PARENTHESIS }
 | ")" { RIGHT_PARENTHESIS }
 | separators
@@ -49,7 +59,8 @@ rule read = parse
 
 (* read until we hit whitespace, a new line, or some kind of delimiter *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '<' | '>' | '(' | ')' | ' ' | '\t' | newline | separators
+(* TODO: add < and > *)
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators
 {
   let k = String.length (Lexing.lexeme lexbuf) in
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
