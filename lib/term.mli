@@ -17,3 +17,5 @@ type t =
 val contains : t -> variable -> bool
 
 val to_string : t -> string
+
+val compare : t -> t -> bool

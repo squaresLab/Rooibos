@@ -30,4 +30,21 @@ let rec to_string = function
     | _ -> ("N_" ^ f ^ "("), ")"
     in
     let ls = List.map ~f:Node.term ls in
-       prefix ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ suffix
+    prefix ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ suffix
+
+let rec compare term1 term2 =
+  match term1, term2 with
+  | Break, Break -> true
+  | Const c1, Const c2 when c1 = c2 -> true
+  | Var v1, Var v2 when v1 = v2 -> true
+  | Compound (c1,l1), Compound (c2,l2) when c1 = c2 ->
+    compare_list l1 l2
+  | _ -> false
+
+and compare_list l1 l2 =
+  match l1,l2 with
+  | [],[] -> true
+  | {term = hd1}::tl1, {term = hd2}::tl2
+    when (compare hd1 hd2) ->
+    compare_list tl1 tl2
+  | _ -> false

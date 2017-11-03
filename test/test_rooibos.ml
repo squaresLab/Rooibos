@@ -19,7 +19,16 @@ let (!) s =
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
 
+let term_to_node term =
+  { Node.term; loc = Location.Range.mock }
+
+let n = term_to_node
+
+let cmp { Node.term = term1; _ } { Node.term = term2; _ } =
+  Term.compare term1 term2
+
 let test_parser _ =
+  let open Term in
   !"" |> ignore;
   !"x" |> ignore;
   !"x()x" |> ignore;
@@ -36,13 +45,14 @@ let test_parser _ =
     (fun () -> !"(x(:[_]())");
 
   assert_equal
-    ~printer:Term.to_string
-    (Compound ("block",[Const "x"; Var ("1",0)]))
+    ~cmp
+    ~printer:(fun { Node.term; _ } -> Term.to_string term)
+    (n (Compound ("block",[n (Const "x"); n (Var ("1",0))])))
     (!"x:[1]");
 
   assert_equal
-    ~printer:Term.to_string
-    (Compound ("block",[Const "xy"; Var ("1",0)]))
+    ~cmp
+    (n (Compound ("block",[n (Const "xy"); n (Var ("1",0))])))
     (!"xy:[1]");
 
   assert_raises
@@ -52,55 +62,6 @@ let test_parser _ =
   assert_raises
     (Exceptions.ParseError  "Please, no consecutive holes allowed")
     (fun () -> !":[_]:[_]:[_]")
-
-
-let test_unify _ =
-  let unify = Unify.unify_terms (Environment.create ()) in
-
-  let env = unify !"(x(:[1]()))" !"(x(y()))" in
-  assert_equal
-    (Term.Const "y")
-    (Environment.lookup env ("1",0));
-
-  let env = unify !"(:[2](:[1]()))" !"(x(y()))" in
-  assert_equal
-    ([Term.Const "y"; Term.Const "x"])
-    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)]);
-
-  let env = unify !":[1]" !"(x(y()))" in
-  assert_equal
-    ~printer:Term.to_string
-    (!"(x(y()))")
-    (Environment.lookup env ("1",0));
-
-  let env = unify !":[1]" !"x()x" in
-  assert_equal
-    ~printer:Term.to_string
-    (!"x()x")
-    (Environment.lookup env ("1",0));
-
-  let env = unify !"x(y:[1])" !"x(y(z()))" in
-  assert_equal
-    ~printer:Term.to_string
-    (!"(z())")
-    (Environment.lookup env ("1",0));
-
-  let env = unify !"x(y(:[1]))" !"x(y(z()))" in
-  assert_equal
-    ~printer:Term.to_string
-    (!"z()")
-    (Environment.lookup env ("1",0));
-
-  let env = unify !"x:[1]x" !"x()x" in
-  assert_equal
-    ~printer:Term.to_string
-    (!"()")
-    (Environment.lookup env ("1",0));
-
-  let env = unify !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x" in
-  assert_equal
-    ([!"a,b,c"; !":"])
-    ([Environment.lookup env ("1",0); Environment.lookup env ("2",0)])
 
 let test_match _ =
   let make_env bindings =
@@ -121,11 +82,10 @@ let test_match _ =
     (make_env [("1", !"a"); ("2", !"b")])
     (env_of_result !"x = :[1] + :[2];" !"x = a + b; x = c + d;")
 
-  let suite =
-    "test" >::: [
-      "test_parser" >:: test_parser
-    ; "test_unify" >:: test_unify
-    ; "test_match" >:: test_match
-    ]
+let suite =
+  "test" >::: [
+    "test_parser" >:: test_parser
+  ; "test_match" >:: test_match
+  ]
 
 let () = run_test_tt_main suite

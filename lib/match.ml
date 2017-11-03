@@ -1,5 +1,6 @@
 open Core_kernel.Std
 
+open Node
 open Term
 
 type t = Environment.t * Location.Range.t
@@ -16,7 +17,10 @@ N_debug(C(x), C(=), H(1), C(;))
 N_debug(C(x), C(=), C(foo), C(;), C(x), C(=), C(bar), C(;))
 *)
 
-let rec find_aux env template source : (Environment.t * Location.Range.t) =
+let rec find_aux env
+    { term = template; _ }
+    ({ term = source; _ } as source_node)
+  : (Environment.t * Location.Range.t) =
   match template, source with
   | Const c1, Const c2 when c1 = c2 -> env, loc
   | Break, Break -> env, loc
@@ -26,7 +30,7 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
     let env, _ = find_aux env b1 b2 in
     env, loc
   | Var v, term ->
-    (Environment.add env v term), loc
+    (Environment.add env v source_node), loc
   | _, _ -> raise NoMatch
 and find_list env ts1 ts2 =
   Format.printf "Matching %s@.\
@@ -35,32 +39,36 @@ and find_list env ts1 ts2 =
     (Term.to_string (Compound ("debug", ts2)));
 
   match ts1, ts2 with
-  | Const c1::((Var ((s,_) as v) :: rest1) as continue),
-    Const c2::start::rest2
+  | { term = Const c1; _ }::(({ term = Var ((s,_) as v); _ } :: rest1) as continue),
+    { term = Const c2; _ }::({ term = start ; _ } as start_node)::rest2
     when c1 = c2 ->
-    Format.printf "Adding var %s with term %s@." s (Term.to_string start);
-    let env = Environment.add env v start in
+    Format.printf
+      "Adding var %s with term %s@." s (Term.to_string start);
+    let env = Environment.add env v start_node in
     find_list env continue rest2
 
-  | Var v::((suffix::rest) as continue),
+  | { term = Var v; _ }::((suffix::rest) as continue),
     ((term::rest2) as continue2) ->
     if suffix = term
     then find_list env continue continue2
     else begin match Environment.lookup env v with
-      | Compound ("block", terms) ->
-        let matches = Compound ("block", terms @ [term]) in
+      | Some ({ term = Compound ("block", terms); loc }) ->
+        (* XXX update location *)
+        let matches = { term = Compound ("block", terms @ [term]); loc } in
         Environment.add env v matches, loc
       (* var has only been matched with one term, extend it to be a compound *)
-      | existing_term ->
-        let matches = Compound ("block", [existing_term; term]) in
+      | Some (({ term = existing_term; loc}) as existing_node) ->
+        let matches = { term = Compound ("block", [existing_node; term]); loc} in
         Environment.add env v matches, loc
+      | None -> failwith "Term does not exist in environment for this variable. add it fresh?"
     end
 
-  | [Var v], [term] ->
+  | [{ term = Var v; _ }], [term] ->
     Environment.add env v term, loc
 
-  | [Var v], terms ->
-    Environment.add env v (Compound ("block", terms)), loc
+  | [{ term = Var v; _ }], terms ->
+    (* XXX update loc we are storing? *)
+    Environment.add env v { term = (Compound ("block", terms)); loc}, loc
 
   | term1::rest1,
     term2::rest2
