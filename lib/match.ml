@@ -81,13 +81,10 @@ and find_list env lhs rhs =
 
   match lhs, rhs with
   | Break::lhs_tl, Break::rhs_tl ->
-    find_list env (skip_until_not_white lhs_tl) (skip_until_not_white rhs_tl)
+    find_list env lhs_tl rhs_tl
 
-  | White _::lhs_tl, rhs ->
-    find_list env (skip_until_not_white lhs_tl) rhs
-
-  | lhs, White _::rhs_tl ->
-    find_list env lhs (skip_until_not_white rhs_tl)
+  | White _::lhs_tl, White _::rhs_tl ->
+    find_list env lhs_tl rhs_tl
 
   | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
     find_list env (skip_until_not_white lhs_tl) (skip_until_not_white rhs_tl)
