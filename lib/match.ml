@@ -71,12 +71,12 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
     raise NoMatch
 
 and find_list env lhs rhs =
-  Format.printf "Matching Sz %d %s@.\
+  (*Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
     (List.length lhs)
     (Term.to_string (Compound ("debug", lhs)))
     (List.length rhs)
-    (Term.to_string (Compound ("debug", rhs)));
+    (Term.to_string (Compound ("debug", rhs)));*)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -91,25 +91,17 @@ and find_list env lhs rhs =
   | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
     find_list env lhs_tl rhs_tl
 
-  (* Identify start of matching, Part 1: when it is a const before hole*)
+  (* Identify start of matching, Part 1: when it is a const before hole *)
   | Const c1::(Var v::lhs_tl as lhs_continue_match),
     Const c2::rhs_tl
-    when c1 = c2 ->
-    begin match skip_until_not_white rhs_tl with
-      | start::rhs_tl ->
-        Format.printf "1.Associating %s with %s@." (fst v) (Term.to_string start);
-        let env = Environment.add env v start in
-        find_list env lhs_continue_match rhs_tl
-      | [] -> env, loc (* Var associates with nothing, end of the list *)
-    end
 
-  (* Identify start of matching, Part 2: when there is whitespace *)
+  (* Identify start of matching, Part 2: when there is whitespace between cons
+     and hole *)
   | Const c1::White _::(Var v::lhs_tl as lhs_continue_match),
     Const c2::rhs_tl
     when c1 = c2 ->
     begin match skip_until_not_white rhs_tl with
       | start::rhs_tl ->
-        Format.printf "2.Associating %s with %s@." (fst v) (Term.to_string start);
         let env = Environment.add env v start in
         find_list env lhs_continue_match rhs_tl
       | [] -> env, loc (* Var associates with nothing, end of the list *)
@@ -118,21 +110,21 @@ and find_list env lhs rhs =
   | Var v::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
     begin match suffix, term with
-      (* do not continue with var. we matched a suffix. we are done. we also
-         processed everything inside suffix, so we are done there too *)
+      (* Stop matching against this var, we matched a suffix. we are done. we
+         also processed everything inside suffix, so we are done there too. *)
       | Compound (c1, terms_lhs), Compound (c2, terms_rhs)
         when c1 = c2 ->
         let env,_ = find_list env terms_lhs terms_rhs in (* XXX loc *)
         find_list env rest rhs_tl
-      (* we are done with this var, and suffix. continue with rest,rhs_tl *)
+      (* we are done with this var, and suffix. continue with the rest *)
       | Const c1, Const c2 when c1 = c2 ->
         find_list env rest rhs_tl
       (* if suffix is whitespace, we need to trim it and continue and try again.
-         we know that we will hit some sort of suffix later. therefore it is ok to
-         deicide to save term here regardless. we don't want to propagate term
-         forward because if it white space it will be eated up. while 'busy
-         matching', we don't want white space to skip. when not matching, we
-         skip *)
+         we know that we will hit some sort of suffix later. therefore it is ok
+         to deicide to save term here regardless. we don't want to propagate
+         term forward because if it is white space it will be removed. while
+         'busy matching', we don't want white space to skip. when not matching,
+         we skip *)
       | White _, term ->
         let env = add_term env v term in
         find_list env (Var v::rest) rhs_tl
@@ -144,23 +136,22 @@ and find_list env lhs rhs =
              matches suffix. *)
           | (White _ as next)::rhs_tl ->
             begin match rhs_tl with
-              (* don't add whitespace if next token is suffix *)
+              (* don't add whitespace if next token is suffix, and we're at the
+                 end *)
               | hd::tl when hd = suffix ->
                 let env = add_term env v term in
-                Format.printf "4.Associating %s with %s AND WHITESPACE@." (fst v) (Term.to_string term);
                 (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
               | _ ->
                 let env = add_term env v term in
                 let env = add_term env v next in
-                Format.printf "4.Associating %s with %s AND WHITESPACE@." (fst v) (Term.to_string term);
                 (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
             end
-          (* if other next term, add this term and continue *)
+          (* if other next term, add this term and continue. other will be
+             handled in the next round of the loop*)
           | other_next_term::_ ->
             let env = add_term env v term in
-            Format.printf "5.Associating %s with %s@." (fst v) (Term.to_string term);
             find_list env lhs_continue_match rhs_tl
           | [] -> find_list env lhs_continue_match rhs_tl
         end

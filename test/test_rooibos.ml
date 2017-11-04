@@ -151,7 +151,6 @@ let test_match _ =
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
 
   assert_equal
-    ~printer:Environment.to_string
     (make_env [("1", !"f()")])
     (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
 
@@ -204,6 +203,23 @@ let not_handled_tests _ =
       ~printer:Environment.to_string
       (make_env [("1", !"a")])
       (env_of_result !":[1]a" !"aa")
+  in
+
+  (* this test case passes if we treat newlines and white space the same.
+     without it, we need to do even more work in matching and lookahead
+     another character, because we can get this:
+
+     Matching Sz 6 N_debug(H(1), CR, W(" "), C(<=), W(" "), C(10)) With Sz 5
+     N_debug(CR, W(" "), C(<=), W(" "), C(10))
+
+     Where 'CR' is not considered a suffix, and rightly so: we want to
+     match across newlines. But the character after CR, W, is also
+     not a suffix, and so it doesn't match.
+  *)
+  let _' _ =
+    assert_equal
+      (make_env [("1", !"f()")])
+      (env_of_result !"if    (x <= :[1]\n <= 10)" !"if (x <= f()\n <= 10)")
   in
 
   (* this case does not match because we are matching:
