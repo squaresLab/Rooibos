@@ -54,8 +54,6 @@ let rec skip_until_not_white = function
   | White _::tl -> skip_until_not_white tl
   | x -> x
 
-let (!) = skip_until_not_white
-
 
 let rec find_aux env template source : (Environment.t * Location.Range.t) =
   match template, source with
@@ -63,7 +61,7 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
   | White _, White _ -> env, loc
   | Break, Break -> env, loc
   | Compound ("block", lhs), Compound ("block", rhs) ->
-    find_list env lhs rhs false ("",0)
+    find_list env lhs rhs
   | Compound (c1, [b1]), Compound(c2, [b2]) when c1 = c2 ->
     let env, _ = find_aux env b1 b2 in
     env, loc
@@ -72,30 +70,26 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
   | _, _ ->
     raise NoMatch
 
-and find_list env lhs rhs busy_matching v =
-  (*Format.printf "Matching Sz %d %s@.\
+and find_list env lhs rhs =
+  Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
     (List.length lhs)
     (Term.to_string (Compound ("debug", lhs)))
     (List.length rhs)
-    (Term.to_string (Compound ("debug", rhs)));*)
+    (Term.to_string (Compound ("debug", rhs)));
 
   match lhs, rhs with
-  | (White _ as t)::lhs_tl, rhs ->
-      find_list env lhs_tl rhs busy_matching v
+  | White _::lhs_tl, rhs ->
+    find_list env lhs_tl rhs
 
-  | lhs, (White _ as t)::rhs_tl ->
-    if busy_matching then
-      let env = Environment.add env v t in
-      find_list env lhs rhs_tl busy_matching v
-    else
-      find_list env lhs rhs_tl busy_matching v
+  | lhs, White _::rhs_tl ->
+    find_list env lhs rhs_tl
 
   | Break::lhs_tl, Break::rhs_tl ->
-    find_list env lhs_tl rhs_tl busy_matching v
+    find_list env lhs_tl rhs_tl
 
   | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
-    find_list env lhs_tl rhs_tl busy_matching v
+    find_list env lhs_tl rhs_tl
 
   (* Identify start of matching, Part 1: when it is a const before hole*)
   | Const c1::(Var v::lhs_tl as lhs_continue_match),
@@ -105,7 +99,7 @@ and find_list env lhs rhs busy_matching v =
       | start::rhs_tl ->
         Format.printf "1.Associating %s with %s@." (fst v) (Term.to_string start);
         let env = Environment.add env v start in
-        find_list env lhs_continue_match rhs_tl busy_matching v
+        find_list env lhs_continue_match rhs_tl
       | [] -> env, loc (* Var associates with nothing, end of the list *)
     end
 
@@ -117,7 +111,7 @@ and find_list env lhs rhs busy_matching v =
       | start::rhs_tl ->
         Format.printf "2.Associating %s with %s@." (fst v) (Term.to_string start);
         let env = Environment.add env v start in
-        find_list env lhs_continue_match rhs_tl busy_matching v
+        find_list env lhs_continue_match rhs_tl
       | [] -> env, loc (* Var associates with nothing, end of the list *)
     end
 
@@ -128,20 +122,36 @@ and find_list env lhs rhs busy_matching v =
          processed everything inside suffix, so we are done there too *)
       | Compound (c1, terms_lhs), Compound (c2, terms_rhs)
         when c1 = c2 ->
-        let env,_ = find_list env terms_lhs terms_rhs busy_matching v in (* XXX loc *)
-        find_list env rest rhs_tl busy_matching v
+        let env,_ = find_list env terms_lhs terms_rhs in (* XXX loc *)
+        find_list env rest rhs_tl
       (* we are done with this var, and suffix. continue with rest,rhs_tl *)
       | Const c1, Const c2 when c1 = c2 ->
-        find_list env rest rhs_tl busy_matching v
-      (* if suffix is whitespace, we need to trim it and continue and try again *)
+        find_list env rest rhs_tl
+      (* if suffix is whitespace, we need to trim it and continue and try again.
+         we know that we will hit some sort of suffix later. therefore it is ok to
+         deicide to save term here regardless. we don't want to propagate term
+         forward because if it white space it will be eated up. while 'busy
+         matching', we don't want white space to skip. when not matching, we
+         skip *)
       | White _, term ->
-        find_list env (Var v::rest) (term::rhs_tl) busy_matching v
-      (* else, not equal, then add term (including whitespace) and continue *)
-      | _ ->
         let env = add_term env v term in
-        Format.printf "4.Associating %s with %s@." (fst v) (Term.to_string term);
-        (* XXX fix up loc in add_term *)
-        find_list env lhs_continue_match rhs_tl busy_matching v
+        find_list env (Var v::rest) rhs_tl
+      (* else, not equal, then add term (including whitespace, if any) and continue *)
+      | _, term ->
+        begin match rhs_tl with
+          | (White _ as next)::rhs_tl ->
+            let env = add_term env v term in
+            let env = add_term env v next in
+            Format.printf "4.Associating %s with %s AND WHITESPACE@." (fst v) (Term.to_string term);
+            (* XXX fix up loc in add_term *)
+            find_list env lhs_continue_match rhs_tl
+          (* if other next term, add this term and continue *)
+          | other_next_term::_ ->
+            let env = add_term env v term in
+            Format.printf "5.Associating %s with %s@." (fst v) (Term.to_string term);
+            find_list env lhs_continue_match rhs_tl
+          | [] -> find_list env lhs_continue_match rhs_tl
+        end
     end
 
   (* We kept consuming and adding terms to var's list, and reached the end of
@@ -158,15 +168,15 @@ and find_list env lhs rhs busy_matching v =
     env, loc (* XXX fix up loc *)
 
   | Compound ("block", lhs)::lhs_tl, Compound ("block", rhs)::rhs_tl ->
-    let env,_ = find_list env lhs rhs busy_matching v in (* XXX take care of loc *)
-    find_list env lhs_tl rhs_tl busy_matching v
+    let env,_ = find_list env lhs rhs in (* XXX take care of loc *)
+    find_list env lhs_tl rhs_tl
 
   | Compound (c1, [b1])::lhs_tl, Compound (c2, [b2])::rhs_tl ->
     let env,_ = find_aux env b1 b2 in (* XXX take care of loc *)
-    find_list env lhs_tl rhs_tl busy_matching v
+    find_list env lhs_tl rhs_tl
 
   | Compound (c1, [])::lhs_tl, Compound (c2, [])::rhs_tl ->
-    find_list env lhs_tl rhs_tl busy_matching v
+    find_list env lhs_tl rhs_tl
 
   | [], _ ->
     env, loc
