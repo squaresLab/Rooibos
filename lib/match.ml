@@ -50,10 +50,15 @@ let add_terms env v terms =
     let matches = Compound ("block", existing_term::terms) in
     Environment.add env v matches
 
+let rec skip_until_not_white = function
+  | White _::tl -> skip_until_not_white tl
+  | x -> x
+
 
 let rec find_aux env template source : (Environment.t * Location.Range.t) =
   match template, source with
   | Const c1, Const c2 when c1 = c2 -> env, loc
+  | White _, White _ -> env, loc
   | Break, Break -> env, loc
   | Compound ("block", lhs), Compound ("block", rhs) ->
     find_list env lhs rhs
@@ -74,20 +79,43 @@ and find_list env lhs rhs =
     (Term.to_string (Compound ("debug", rhs)));*)
 
   match lhs, rhs with
+  | White _::lhs_tl, rhs ->
+    find_list env lhs_tl rhs
+
+  | lhs, White _::rhs_tl ->
+    find_list env lhs rhs_tl
+
   | Break::lhs_tl, Break::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
   | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
     find_list env lhs_tl rhs_tl
 
+  (* Identify start of matching, Part 1: when it is a const before hole*)
   | Const c1::(Var v::lhs_tl as lhs_continue_match),
-    Const c2::start::rhs_tl
+    Const c2::rhs_tl
     when c1 = c2 ->
-    let env = Environment.add env v start in
-    find_list env lhs_continue_match rhs_tl
+    begin match skip_until_not_white rhs_tl with
+      | start::rhs_tl ->
+        let env = Environment.add env v start in
+        find_list env lhs_continue_match rhs_tl
+      | [] -> env, loc (* Var associates with nothing, end of the list *)
+    end
+
+  (* Identify start of matching, Part 2: when there is whitespace *)
+  | Const c1::White _::(Var v::lhs_tl as lhs_continue_match),
+    Const c2::rhs_tl
+    when c1 = c2 ->
+    begin match skip_until_not_white rhs_tl with
+      | start::rhs_tl ->
+        let env = Environment.add env v start in
+        find_list env lhs_continue_match rhs_tl
+      | [] -> env, loc (* Var associates with nothing, end of the list *)
+    end
 
   | Var v::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
+
     begin match suffix, term with
       | Compound (c1, terms_lhs), Compound (c2, terms_rhs)
         when c1 = c2 ->
@@ -98,7 +126,10 @@ and find_list env lhs rhs =
       | Const c1, Const c2 when c1 = c2 ->
         (* we are done with this var, and suffix. continue with rest,rhs_tl *)
         find_list env rest rhs_tl
-      (* else, not equal, then... *)
+      (* if suffix is whitespace, we need to trim it and continue and try again *)
+      | White _, term ->
+        find_list env (Var v::rest) (term::rhs_tl)
+      (* else, not equal, then add term (including whitespace) and continue *)
       | _ ->
         let env = add_term env v term in
         (* XXX fix up loc in add_term *)
