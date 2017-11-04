@@ -139,12 +139,24 @@ and find_list env lhs rhs =
       (* else, not equal, then add term (including whitespace, if any) and continue *)
       | _, term ->
         begin match rhs_tl with
+          (* we want to add whitespace when we are in a match. but:
+             we want to not actually add white if the next token
+             matches suffix. *)
           | (White _ as next)::rhs_tl ->
-            let env = add_term env v term in
-            let env = add_term env v next in
-            Format.printf "4.Associating %s with %s AND WHITESPACE@." (fst v) (Term.to_string term);
-            (* XXX fix up loc in add_term *)
-            find_list env lhs_continue_match rhs_tl
+            begin match rhs_tl with
+              (* don't add whitespace if next token is suffix *)
+              | hd::tl when hd = suffix ->
+                let env = add_term env v term in
+                Format.printf "4.Associating %s with %s AND WHITESPACE@." (fst v) (Term.to_string term);
+                (* XXX fix up loc in add_term *)
+                find_list env lhs_continue_match rhs_tl
+              | _ ->
+                let env = add_term env v term in
+                let env = add_term env v next in
+                Format.printf "4.Associating %s with %s AND WHITESPACE@." (fst v) (Term.to_string term);
+                (* XXX fix up loc in add_term *)
+                find_list env lhs_continue_match rhs_tl
+            end
           (* if other next term, add this term and continue *)
           | other_next_term::_ ->
             let env = add_term env v term in

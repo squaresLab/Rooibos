@@ -151,6 +151,7 @@ let test_match _ =
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
 
   assert_equal
+    ~printer:Environment.to_string
     (make_env [("1", !"f()")])
     (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
 
