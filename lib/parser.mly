@@ -48,4 +48,5 @@ literal:
 | LINE_BREAK { Break }
 | CONST     { Const $1 }
 | HOLE      { Var ($1, 0) }
+| WHITESPACE { White $1 }
 | HOLE HOLE { raise (ParseError ("Please, no consecutive holes allowed")) }

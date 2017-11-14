@@ -24,6 +24,7 @@ let rec pp formatter term =
     let left,right = delimiters_of_string delimiter in
     Format.fprintf formatter "%s%a%s" left pp_list terms right
   | Break -> Format.fprintf formatter "@."
+  | White w -> Format.fprintf formatter "%s" w
 and pp_list formatter term_list =
   match term_list with
   | [] -> Format.fprintf formatter ""

@@ -35,9 +35,7 @@ rule read = parse
 }
 | white
 {
-  (* ignoring this problem for now...
-     WHITESPACE (Lexing.lexeme lexbuf) *)
-  read lexbuf
+  WHITESPACE (Lexing.lexeme lexbuf)
 }
 | _ as c
 {
