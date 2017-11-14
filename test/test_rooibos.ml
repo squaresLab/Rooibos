@@ -16,6 +16,15 @@ let (!) s =
   | Parser.Error ->
     failwith @@ Format.asprintf "%a: syntax error in %s\n" pp_position lexbuf s
 
+let format s =
+  let s = s |> String.chop_prefix_exn ~prefix:"\n" in
+  let leading_indentation =
+    Option.value_exn (String.lfindi s ~f:(fun _ c -> c <> ' ')) in
+  s
+  |> String.split ~on:'\n'
+  |> List.map ~f:(Fn.flip String.drop_prefix leading_indentation)
+  |> String.concat ~sep:"\n"
+
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
 
@@ -187,6 +196,80 @@ let test_match _ =
     (Match.find !"foo.:[1].val = :[2]" !"foo.val = 100")
 
 
+let test_end_to_end _ =
+  let rewrite template source rewrite_template =
+    Option.value_exn (Match.find !template !source)
+    |> fst
+    |> Fn.flip Environment.substitute!rewrite_template
+    |> Printer.to_string
+  in
+
+  let template =
+    {|
+      strcpy(:[1],:[2]);
+    |}
+  in
+
+  let source =
+    {|
+      strcpy(dst,src);
+    |}
+  in
+
+  let rewrite_template =
+    {|
+      strncpy(:[1],:[2],5);
+    |}
+  in
+
+  assert_equal
+    {|
+      strncpy(dst,src,5);
+    |}
+    (rewrite template source rewrite_template);
+
+  (* adds whitespace in template *)
+  let template =
+    {|
+      strcpy(    :[1], :[2])   ;
+    |}
+  in
+
+  assert_equal
+    {|
+      strncpy(dst,src,5);
+    |}
+    (rewrite template source rewrite_template);
+
+  (* adds whitespace in rewrite template *)
+  let rewrite_template =
+    {|
+      strncpy(:[1],   :[2],  5);
+    |}
+  in
+
+  assert_equal
+    ~printer:ident
+    {|
+      strncpy(dst,   src,  5);
+    |}
+    (rewrite template source rewrite_template);
+
+  (* adds whitespace in source *)
+  let source =
+    {|
+      strcpy  (  dst, src)   ;
+    |}
+  in
+
+  assert_equal
+    ~printer:ident
+    {|
+      strncpy(dst,   src,  5);
+    |}
+    (rewrite template source rewrite_template)
+
+
 
 let not_handled_tests _ =
   (* this case must still be handled: match hole to empty string *)
@@ -292,6 +375,7 @@ let test_printer _ =
     "test" >::: [
       "test_parser" >:: test_parser
     ; "test_match" >:: test_match
+    ; "test_end_to_end" >:: test_end_to_end
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ]
