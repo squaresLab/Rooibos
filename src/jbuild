@@ -8,3 +8,8 @@
  ((name DEFAULT)
   (deps
    (main.exe))))
+
+(install
+ ((section bin)
+  (files ((main.exe as rooibos)))))
+
