@@ -82,6 +82,12 @@ and find_list env lhs rhs =
   | White _::lhs_tl, rhs ->
     find_list env lhs_tl rhs
 
+  (* FIXME #30 : by default we want to skip white space on the rhs unless we are
+     'in a match'. The problem is, when lhs contains a Var here, we want to keep
+     the whitespace when 'in a match', but skip when 'not matching'. Moving the
+     case after | Var v::suffix ... doesn't work because the | Var v... will
+     bind whitespace before a const, because it is written with the implicit
+     assumption that matching the | Var v case means is 'in a match' *)
   | lhs, White _::rhs_tl ->
     find_list env lhs rhs_tl
 
@@ -99,6 +105,7 @@ and find_list env lhs rhs =
      and hole *)
   | Const c1::White _::(Var v::lhs_tl as lhs_continue_match),
     Const c2::rhs_tl
+
     when c1 = c2 ->
     begin match skip_until_not_white rhs_tl with
       | start::rhs_tl ->
@@ -124,7 +131,7 @@ and find_list env lhs rhs =
          to deicide to save term here regardless. we don't want to propagate
          term forward because if it is white space it will be removed. while
          'busy matching', we don't want white space to skip. when not matching,
-         we skip *)
+         we skip. I.e., term may be white space here, and we keep it. *)
       | White _, term ->
         let env = add_term env v term in
         find_list env (Var v::rest) rhs_tl
@@ -138,10 +145,11 @@ and find_list env lhs rhs =
             begin match rhs_tl with
               (* don't add whitespace if next token is suffix, and we're at the
                  end *)
-              | hd::tl when hd = suffix ->
+              | hd::_ when hd = suffix ->
                 let env = add_term env v term in
                 (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
+              (* add the term and the 'next' white space since it is not suffix *)
               | _ ->
                 let env = add_term env v term in
                 let env = add_term env v next in
@@ -150,7 +158,7 @@ and find_list env lhs rhs =
             end
           (* if other next term, add this term and continue. other will be
              handled in the next round of the loop*)
-          | other_next_term::_ ->
+          | non_white_next_term::_ ->
             let env = add_term env v term in
             find_list env lhs_continue_match rhs_tl
           | [] -> find_list env lhs_continue_match rhs_tl
