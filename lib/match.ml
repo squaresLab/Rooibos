@@ -251,6 +251,3 @@ let exists template source =
     all template source |> ignore;
     true
   with | NoMatch -> false
-
-
-let to_string match_ = ""
