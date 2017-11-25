@@ -2,7 +2,7 @@ open Core
 
 open Term
 
-type t = Environment.t * Location.Range.t
+type t = Environment.t
 
 exception NoMatch
 
@@ -198,7 +198,7 @@ and find_list env lhs rhs =
 
 let find template source =
   let env = Environment.create () in
-  try Some (find_aux env template source)
+  try Some (find_aux env template source |> fst)
   with _ -> None
 
 let exists template source = false

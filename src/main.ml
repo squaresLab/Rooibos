@@ -17,7 +17,7 @@ let () =
   match Array.to_list Sys.argv with
   | _ :: "-i" :: template :: source :: rewrite_template :: _ ->
     begin match Match.find (to_term template) (to_term source) with
-      | Some (env,_) ->
+      | Some env ->
         (* Format.printf "Match: %s@." (Environment.to_string env); *)
         let rewritten = Environment.substitute env (to_term rewrite_template) in
         Format.printf "%s" (Printer.to_string rewritten)
@@ -28,7 +28,7 @@ let () =
     let source = In_channel.read_all source in
     let rewrite_template = In_channel.read_all rewrite_template in
     begin match Match.find (to_term template) (to_term source) with
-      | Some (env,_) ->
+      | Some env ->
         (* Format.printf "Match: %s@." (Environment.to_string env); *)
         let rewritten = Environment.substitute env (to_term rewrite_template) in
         Format.printf "%s" (Printer.to_string rewritten)
