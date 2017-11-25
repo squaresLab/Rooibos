@@ -231,6 +231,12 @@ let rec find_shift acc template source =
   | None -> acc
 
 
+(**
+   (1) For any list of terms, run 'find_shift' to find all matches on that level
+   (2) In the list of terms, extract all compounds (that can contain further
+   lists/leaf terms)
+   (3) For each list of terms in compounds/leafs, also run find_shift.
+*)
 let all template source =
   let rec aux acc template source =
     match source with
