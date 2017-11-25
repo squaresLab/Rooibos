@@ -211,13 +211,13 @@ let rec bust_out_compounds source : Term.t list =
   | Compound ("block", terms) ->
     List.filter terms
       ~f:(function | Compound (c, _) when c <> "block" -> true | _ -> false)
-  (* non-block compounds are always just one element of type block. FIXME *)
+  (* non-block compounds are always just one element of type block. FIXME #36 *)
   | Compound (c, [terms]) ->
     bust_out_compounds terms
   | _ -> []
 
 
-(** find all matches on this level, shifting. *)
+(** Find all matches on this level, shifting. *)
 let rec find_shift acc template source =
   try
     let env, _ = find_aux (Environment.create ()) template source in
