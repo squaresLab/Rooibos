@@ -199,7 +199,7 @@ let test_match _ =
 let test_end_to_end _ =
   let rewrite template source rewrite_template =
     Option.value_exn (Match.find !template !source)
-    |> Fn.flip Environment.substitute!rewrite_template
+    |> Fn.flip Environment.substitute !rewrite_template
     |> Printer.to_string
   in
 
@@ -267,6 +267,82 @@ let test_end_to_end _ =
       strncpy(dst,   src,  5);
     |}
     (rewrite template source rewrite_template)
+
+
+let test_all_match _ =
+  let rewrite template source rewrite_template =
+    Match.all !template !source
+    |> Sequence.map ~f:(Fn.flip Environment.substitute !rewrite_template)
+    |> Sequence.fold ~init:"" ~f:(fun acc term -> (Printer.to_string term)^acc)
+  in
+
+  let source =
+    {|
+      assert(stream->md_len + md_len -
+             si.main_data_begin <= MAD_BUFFER_MDLEN);
+
+      memcpy(*stream->main_data + stream->md_len,
+             mad_bit_nextbyte(&stream->ptr),
+             frame_used = md_len - si.main_data_begin);
+      stream->md_len += frame_used;
+    |}
+  in
+
+  let template =
+    {|
+      memcpy(:[1], :[2], :[3]);
+    |}
+  in
+
+  let rewrite_template =
+    {|
+      ||:[1]||:[2]||:[3]||
+    |}
+  in
+
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    ({|
+      ||*stream->main_data + stream->md_len||
+             mad_bit_nextbyte(&stream->ptr)||
+             frame_used = md_len - si.main_data_begin||
+    |} |> format)
+    (rewrite template source rewrite_template |> format);
+
+
+  let source =
+    {|
+      memcpy(dst1, src1, 1);
+
+      // blah blah
+
+      memcpy(dst2, src2, 2);
+    |}
+  in
+
+  let template =
+    {|
+      memcpy(:[1], :[2], :[3]);
+    |}
+  in
+
+  let rewrite_template =
+    {|
+      ||:[1]||:[2]||:[3]||
+    |}
+  in
+
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    ({|
+      ||dst1||src1||1||
+
+      ||dst2||src2||2||
+    |} |> format)
+    (rewrite template source rewrite_template |> format);
+  ()
 
 
 
@@ -377,6 +453,7 @@ let test_printer _ =
     ; "test_end_to_end" >:: test_end_to_end
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
+    ; "test_all_match" >:: test_all_match
     ]
 
 let () = run_test_tt_main suite

@@ -6,9 +6,6 @@ type t = Environment.t
 
 exception NoMatch
 
-let all template source =
-  Sequence.empty
-
 let loc =
   let open Location in
   { Range.start_ = { line = 0; column = 0 }
@@ -202,5 +199,32 @@ let find template source =
   with _ -> None
 
 let exists template source = false
+
+let rec shift_source source : Term.t option =
+  match source with
+  | Break
+  | White _
+  | Const _
+  | Var _
+  | Compound (_, []) -> None
+  | Compound (c, term::terms) ->
+    match shift_source term with
+    | Some term -> Some (Compound (c, term::terms))
+    | None -> Some (Compound (c, terms))
+
+let all template source =
+  let rec aux acc template source =
+    try
+      let env, _ = find_aux (Environment.create ()) template source in
+      let acc = env::acc in
+      match shift_source source with
+      | Some shifted_term -> aux acc template shifted_term
+      | None -> acc
+    with | NoMatch ->
+    match shift_source source with
+    | Some shifted_term -> aux acc template shifted_term
+    | None -> acc
+  in
+  Sequence.of_list (aux [] template source)
 
 let to_string match_ = ""
