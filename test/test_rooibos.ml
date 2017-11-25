@@ -310,7 +310,6 @@ let test_all_match _ =
     |} |> format)
     (rewrite template source rewrite_template |> format);
 
-
   let source =
     {|
       memcpy(dst1, src1, 1);
@@ -342,7 +341,54 @@ let test_all_match _ =
       ||dst2||src2||2||
     |} |> format)
     (rewrite template source rewrite_template |> format);
-  ()
+
+  let source =
+    {|
+      {
+        strcpy(conf.local.path, (yyvsp[0].string));
+      }
+    |}
+  in
+
+  let template =
+    {|
+      strcpy(:[1], :[2]);
+    |}
+  in
+
+  let rewrite_template =
+    {|
+      :[1] :[2]
+    |}
+  in
+
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    {|
+      conf.local.path (yyvsp[0].string)
+    |}
+    (rewrite template source rewrite_template);
+
+  let source =
+    {|
+      {
+      {}
+      {{[]{ ()
+        strcpy(conf.local.path, (yyvsp[0].string));
+      }}}
+      }
+    |}
+  in
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    {|
+      conf.local.path (yyvsp[0].string)
+    |}
+    (rewrite template source rewrite_template);
+
+()
 
 
 

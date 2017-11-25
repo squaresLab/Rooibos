@@ -10,7 +10,7 @@ val all : Term.t -> Term.t -> t Sequence.t
    source code [src]. *)
 val find : Term.t -> Term.t -> t option
 
-(* [exists tpl src] returns [true] if a given template [tpl] matches a source
+(* [exists t src] returns [true] if a given template [tpl] matches a source
    code [src] in at least one location. *)
 val exists : Term.t -> Term.t -> bool
 

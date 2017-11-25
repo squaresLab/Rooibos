@@ -68,12 +68,12 @@ let rec find_aux env template source : (Environment.t * Location.Range.t) =
     raise NoMatch
 
 and find_list env lhs rhs =
-  (*Format.printf "Matching Sz %d %s@.\
+  (* Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
     (List.length lhs)
     (Term.to_string (Compound ("debug", lhs)))
     (List.length rhs)
-    (Term.to_string (Compound ("debug", rhs)));*)
+    (Term.to_string (Compound ("debug", rhs))); *)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -198,33 +198,59 @@ let find template source =
   try Some (find_aux env template source |> fst)
   with _ -> None
 
-let exists template source = false
 
 let rec shift_source source : Term.t option =
   match source with
-  | Break
-  | White _
-  | Const _
-  | Var _
-  | Compound (_, []) -> None
-  | Compound (c, term::terms) ->
-    match shift_source term with
-    | Some term -> Some (Compound (c, term::terms))
-    | None -> Some (Compound (c, terms))
+  | Compound (c, term::terms) when c = "block" ->
+    Some (Compound (c, terms))
+  | _ -> None
+
+
+let rec bust_out_compounds source : Term.t list =
+  match source with
+  | Compound ("block", terms) ->
+    List.filter terms
+      ~f:(function | Compound (c, _) when c <> "block" -> true | _ -> false)
+  (* non-block compounds are always just one element of type block. FIXME *)
+  | Compound (c, [terms]) ->
+    bust_out_compounds terms
+  | _ -> []
+
+
+(** find all matches on this level, shifting. *)
+let rec find_shift acc template source =
+  try
+    let env, _ = find_aux (Environment.create ()) template source in
+    let acc = env::acc in
+    match shift_source source with
+    | Some shifted_term -> find_shift acc template shifted_term
+    | None -> acc
+  with | NoMatch ->
+  match shift_source source with
+  | Some shifted_term -> find_shift acc template shifted_term
+  | None -> acc
+
 
 let all template source =
   let rec aux acc template source =
-    try
-      let env, _ = find_aux (Environment.create ()) template source in
-      let acc = env::acc in
-      match shift_source source with
-      | Some shifted_term -> aux acc template shifted_term
-      | None -> acc
-    with | NoMatch ->
-    match shift_source source with
-    | Some shifted_term -> aux acc template shifted_term
-    | None -> acc
+    match source with
+    | Compound ("block", terms) as this_level ->
+      let acc = find_shift acc template source in
+      let compounds = bust_out_compounds this_level in
+      List.fold
+        ~init:acc ~f:(fun acc term -> (aux acc template term))
+        compounds
+    | Compound (c, [block]) -> aux acc template block
+    | _ -> acc
   in
   Sequence.of_list (aux [] template source)
+
+
+let exists template source =
+  try
+    all template source |> ignore;
+    true
+  with | NoMatch -> false
+
 
 let to_string match_ = ""
