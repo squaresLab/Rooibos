@@ -16,22 +16,28 @@ let to_term s =
 let () =
   match Array.to_list Sys.argv with
   | _ :: "-i" :: template :: source :: rewrite_template :: _ ->
-    begin match Match.find (to_term template) (to_term source) with
-      | Some env ->
+    begin match
+        Match.all (to_term template) (to_term source)
+        |> Sequence.to_list
+      with
+      | env::_ ->
         (* Format.printf "Match: %s@." (Environment.to_string env); *)
         let rewritten = Environment.substitute env (to_term rewrite_template) in
         Format.printf "%s" (Printer.to_string rewritten)
-      | None -> failwith "No match"
+      | [] -> failwith "No match"
     end
   | _ :: template :: source :: rewrite_template :: _ ->
     let template = In_channel.read_all template in
     let source = In_channel.read_all source in
     let rewrite_template = In_channel.read_all rewrite_template in
-    begin match Match.find (to_term template) (to_term source) with
-      | Some env ->
+    begin match
+        Match.all (to_term template) (to_term source)
+        |> Sequence.to_list
+      with
+      | env::_ ->
         (* Format.printf "Match: %s@." (Environment.to_string env); *)
         let rewritten = Environment.substitute env (to_term rewrite_template) in
         Format.printf "%s" (Printer.to_string rewritten)
-      | None -> failwith "No match"
+      | [] -> failwith "No match"
     end
   | _ -> failwith "Unknown arguments"
