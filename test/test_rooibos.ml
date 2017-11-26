@@ -24,6 +24,7 @@ let format s =
   |> String.split ~on:'\n'
   |> List.map ~f:(Fn.flip String.drop_prefix leading_indentation)
   |> String.concat ~sep:"\n"
+  |> String.chop_suffix_exn ~suffix:"\n"
 
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
@@ -273,8 +274,12 @@ let test_all_match _ =
   let rewrite template source rewrite_template =
     Match.all !template !source
     |> Sequence.map ~f:(Fn.flip Environment.substitute !rewrite_template)
-    |> Sequence.fold ~init:"" ~f:(fun acc term -> (Printer.to_string term)^acc)
+    |> Sequence.map ~f:Printer.to_string
+    |> Sequence.to_list
+    |> String.concat ~sep:" AND "
   in
+
+  (* Multi-line case *)
 
   let source =
     {|
@@ -310,6 +315,8 @@ let test_all_match _ =
     |} |> format)
     (rewrite template source rewrite_template |> format);
 
+  (* Multi-match to multi-environment case *)
+
   let source =
     {|
       memcpy(dst1, src1, 1);
@@ -327,20 +334,18 @@ let test_all_match _ =
   in
 
   let rewrite_template =
-    {|
-      ||:[1]||:[2]||:[3]||
-    |}
+    {|||:[1]||:[2]||:[3]|||}
   in
 
   assert_equal
     ~printer:(fun s ->
         String.concat_map s ~sep:"," ~f:Char.to_string)
     ({|
-      ||dst1||src1||1||
-
-      ||dst2||src2||2||
+      ||dst2||src2||2|| AND ||dst1||src1||1||
     |} |> format)
-    (rewrite template source rewrite_template |> format);
+    (rewrite template source rewrite_template);
+
+  (* All matching inside nested terms *)
 
   let source =
     {|
@@ -358,7 +363,7 @@ let test_all_match _ =
 
   let rewrite_template =
     {|
-      :[1] :[2]
+      :[1]||:[2]
     |}
   in
 
@@ -366,7 +371,7 @@ let test_all_match _ =
     ~printer:(fun s ->
         String.concat_map s ~sep:"," ~f:Char.to_string)
     {|
-      conf.local.path (yyvsp[0].string)
+      conf.local.path||(yyvsp[0].string)
     |}
     (rewrite template source rewrite_template);
 
@@ -384,11 +389,57 @@ let test_all_match _ =
     ~printer:(fun s ->
         String.concat_map s ~sep:"," ~f:Char.to_string)
     {|
-      conf.local.path (yyvsp[0].string)
+      conf.local.path||(yyvsp[0].string)
     |}
     (rewrite template source rewrite_template);
 
-()
+  let source =
+    {|
+      {
+      {}
+      {{[]{ ()
+        strcpy(conf.local.path, (yyvsp[0].string));
+      }}}
+      }
+    |}
+  in
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    {|
+      conf.local.path||(yyvsp[0].string)
+    |}
+    (rewrite template source rewrite_template);
+
+  (* Multi nested matching *)
+
+  (* Leading whitespace or anything else causes duplicate matches because we are
+     not advancing to the end of the match *)
+  let source =
+    {|
+      strcpy(strcpy(dst1,src1),src2); blah blah XXX
+    |} |> format
+  in
+
+  let template =
+    {|
+      strcpy(:[1], :[2])
+    |} |> format
+  in
+
+  let rewrite_template =
+    {|
+      :[1]||:[2]
+    |} |> format
+  in
+
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    {|dst1||src1 AND strcpy(dst1,src1)||src2|}
+    (rewrite template source rewrite_template);
+
+  ()
 
 
 

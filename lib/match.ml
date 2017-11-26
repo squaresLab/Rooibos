@@ -219,16 +219,17 @@ let rec bust_out_compounds source : Term.t list =
 
 (** Find all matches on this level, shifting. *)
 let rec find_shift acc template source =
+  let continue acc source =
+    match shift_source source with
+    | Some shifted_term ->
+      find_shift acc template shifted_term
+    | None -> acc
+  in
   try
     let env, _ = find_aux (Environment.create ()) template source in
     let acc = env::acc in
-    match shift_source source with
-    | Some shifted_term -> find_shift acc template shifted_term
-    | None -> acc
-  with | NoMatch ->
-  match shift_source source with
-  | Some shifted_term -> find_shift acc template shifted_term
-  | None -> acc
+    continue acc source
+  with | NoMatch -> continue acc source
 
 
 (**
