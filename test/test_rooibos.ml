@@ -413,14 +413,13 @@ let test_all_match _ =
 
   (* Multi nested matching *)
 
-  (* Leading whitespace or anything else causes duplicate matches because we are
-     not advancing to the end of the match *)
   let source =
     {|
       x x y strcpy(strcpy(dst1,src1),src2); blah blah XXX
-    |} |> format
+    |}
   in
 
+  (* needs format because prefix and suffix whitespace is match-sensitive *)
   let template =
     {|
       strcpy(:[1], :[2])
@@ -438,8 +437,34 @@ let test_all_match _ =
         String.concat_map s ~sep:"," ~f:Char.to_string)
     {|dst1||src1 AND strcpy(dst1,src1)||src2|}
     (rewrite template source rewrite_template);
-  ()
 
+  (* multiple match without semicolon *)
+
+  let source =
+    {|
+      foo(bar, quux);~~~ foo(foobar, bazz)
+    |}
+  in
+
+  let template =
+    {|
+      foo(:[1], :[2])
+    |} |> format
+  in
+
+  let rewrite_template =
+    {|
+      :[1]||:[2]
+    |} |> format
+  in
+
+  assert_equal
+    ~printer:(fun s ->
+        String.concat_map s ~sep:"," ~f:Char.to_string)
+    {|foobar||bazz AND bar||quux|}
+    (rewrite template source rewrite_template);
+
+  ()
 
 
 let not_handled_tests _ =
