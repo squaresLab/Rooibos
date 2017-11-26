@@ -417,7 +417,7 @@ let test_all_match _ =
      not advancing to the end of the match *)
   let source =
     {|
-      strcpy(strcpy(dst1,src1),src2); blah blah XXX
+      x x y strcpy(strcpy(dst1,src1),src2); blah blah XXX
     |} |> format
   in
 
@@ -438,7 +438,6 @@ let test_all_match _ =
         String.concat_map s ~sep:"," ~f:Char.to_string)
     {|dst1||src1 AND strcpy(dst1,src1)||src2|}
     (rewrite template source rewrite_template);
-
   ()
 
 

@@ -8,6 +8,9 @@ type t
 
 val create : unit -> t
 
+(** [vars env] returns the variables bound in [env] *)
+val vars : t -> variable list
+
 (** [add env var term] binds the term [term] to variable [var] in
     environment [env]. *)
 val add : t -> variable -> Term.t -> t

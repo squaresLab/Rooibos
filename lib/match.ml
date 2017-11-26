@@ -199,9 +199,13 @@ let find template source =
   with _ -> None
 
 
-let rec shift_source source : Term.t option =
+(** shift a source by n. n only comes into play for blocks AKA lists *)
+let rec shift_source n source : Term.t option =
+  assert (n > 0);
   match source with
-  | Compound (c, term::terms) when c = "block" ->
+  | Compound (c, terms)
+    when c = "block" && (List.length terms > 0) ->
+    let terms = List.drop terms n in
     Some (Compound (c, terms))
   | _ -> None
 
@@ -217,10 +221,20 @@ let rec bust_out_compounds source : Term.t list =
   | _ -> []
 
 
-(** Find all matches on this level, shifting. *)
+(** A way to find the size of the term for advancing *)
+let size (term : Term.t) =
+  match term with
+  | Compound ("block", terms) -> List.length terms
+  | _ -> 1
+
+
+(** Find all matches on this level, shifting. We always shift by 1. If there is
+    a match, we calculate the size of the terms in a list matched, and add this
+    to 1, to advance past the matched terms. This ensures we do not record
+    duplicate matches as we shift. *)
 let rec find_shift acc template source =
-  let continue acc source =
-    match shift_source source with
+  let continue n acc source =
+    match shift_source n source with
     | Some shifted_term ->
       find_shift acc template shifted_term
     | None -> acc
@@ -228,8 +242,11 @@ let rec find_shift acc template source =
   try
     let env, _ = find_aux (Environment.create ()) template source in
     let acc = env::acc in
-    continue acc source
-  with | NoMatch -> continue acc source
+    let var = Environment.vars env |> List.hd_exn in
+    let term = Environment.lookup env var in
+    let n = size term in
+    continue (1+n) acc source
+  with | NoMatch -> continue 1 acc source
 
 
 (**

@@ -6,6 +6,9 @@ type t = (variable, Term.t) List.Assoc.t
 let create () =
   []
 
+let vars env =
+  List.map env ~f:fst
+
 let add env var term =
   List.Assoc.add ~equal:Pervasives.(=) env var term
 
