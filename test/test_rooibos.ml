@@ -194,8 +194,27 @@ let test_match _ =
 
   assert_equal
     None
-    (Match.find !"foo.:[1].val = :[2]" !"foo.val = 100")
+    (Match.find !"foo.:[1].val = :[2]" !"foo.val = 100");
 
+  (* string literals *)
+
+  assert_equal
+    (make_env [("1", !{|"it is wednesday"|})])
+    (env_of_result !":[1]" !{|"it is wednesday"|});
+
+  assert_equal
+    (make_env [("1", !{|"unbalanced [ ( { legal in string literal"|})])
+    (env_of_result !":[1]" !{|"unbalanced [ ( { legal in string literal"|});
+
+  assert_fails_with_message
+    "String is not terminated"
+    (fun () -> !{| unterminated string " literal |});
+
+  (* no match support inside string literals for now *)
+
+  assert_equal
+    None
+    (Match.find !{|"prefix :[1] suffix"|} !{|"prefix x suffix"|})
 
 let test_end_to_end _ =
   let rewrite template source rewrite_template =

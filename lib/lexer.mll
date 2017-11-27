@@ -33,10 +33,8 @@ rule read = parse
   let name = String.chop_suffix_exn name ~suffix:"]" in
   HOLE name
 }
-| white
-{
-  WHITESPACE (Lexing.lexeme lexbuf)
-}
+| white { WHITESPACE (Lexing.lexeme lexbuf) }
+| '"'   { read_string_literal (Buffer.create 17) lexbuf }
 | _ as c
 {
   let buf = Buffer.create 17 in
@@ -55,3 +53,14 @@ and read_const buf = parse
 }
 | _ as c  { Buffer.add_char buf c; read_const buf lexbuf }
 | eof     { CONST (Buffer.contents buf) }
+
+and read_string_literal buf = parse
+| '"'      { CONST (Buffer.contents buf) }
+| '\\' '"' { Buffer.add_char buf '"'; read_string_literal buf lexbuf }
+| [^ '"' '\\' '\n']+
+  { Buffer.add_string buf (Lexing.lexeme lexbuf);
+    read_string_literal buf lexbuf
+  }
+| '\n'
+| eof  { failwith "String is not terminated" }
+| _    { failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf) }
