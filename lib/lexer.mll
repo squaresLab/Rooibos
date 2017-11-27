@@ -34,7 +34,8 @@ rule read = parse
   HOLE name
 }
 | white { WHITESPACE (Lexing.lexeme lexbuf) }
-| '"'   { read_string_literal (Buffer.create 17) lexbuf }
+| '"'   { read_string_literal_double (Buffer.create 17) lexbuf }
+| '\''  { read_string_literal_single (Buffer.create 17) lexbuf }
 | _ as c
 {
   let buf = Buffer.create 17 in
@@ -54,13 +55,30 @@ and read_const buf = parse
 | _ as c  { Buffer.add_char buf c; read_const buf lexbuf }
 | eof     { CONST (Buffer.contents buf) }
 
-and read_string_literal buf = parse
+and read_string_literal_double buf = parse
 | '"'      { CONST (Buffer.contents buf) }
-| '\\' '"' { Buffer.add_char buf '"'; read_string_literal buf lexbuf }
-| [^ '"' '\\' '\n']+
+| [^ '"' '\n']+
   { Buffer.add_string buf (Lexing.lexeme lexbuf);
-    read_string_literal buf lexbuf
+    read_string_literal_double buf lexbuf
   }
 | '\n'
 | eof  { failwith "String is not terminated" }
-| _    { failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf) }
+| _    {
+  let pos = lexbuf.lex_curr_p in
+  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
+    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
+  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos) }
+
+and read_string_literal_single buf = parse
+| '\''      { CONST (Buffer.contents buf) }
+| [^ '\'' '\n']+
+  { Buffer.add_string buf (Lexing.lexeme lexbuf);
+    read_string_literal_single buf lexbuf
+  }
+| '\n'
+| eof  { failwith "String is not terminated" }
+| _    {
+  let pos = lexbuf.lex_curr_p in
+  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
+    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
+  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos) }

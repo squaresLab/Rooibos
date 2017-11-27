@@ -203,6 +203,14 @@ let test_match _ =
     (env_of_result !":[1]" !{|"it is wednesday"|});
 
   assert_equal
+    (make_env [("1", !{|'it is wednesday'|})])
+    (env_of_result !":[1]" !{|'it is wednesday'|});
+
+  assert_equal
+    (make_env [("1", !{|printf("\033[38;5;0m");|})])
+    (env_of_result !":[1]" !{|printf("\033[38;5;0m");|});
+
+  assert_equal
     (make_env [("1", !{|"unbalanced [ ( { legal in string literal"|})])
     (env_of_result !":[1]" !{|"unbalanced [ ( { legal in string literal"|});
 
@@ -210,11 +218,16 @@ let test_match _ =
     "String is not terminated"
     (fun () -> !{| unterminated string " literal |});
 
+  assert_fails_with_message
+    "String is not terminated"
+    (fun () -> !{| unterminated string ' literal |});
+
   (* no match support inside string literals for now *)
 
   assert_equal
     None
     (Match.find !{|"prefix :[1] suffix"|} !{|"prefix x suffix"|})
+
 
 let test_end_to_end _ =
   let rewrite template source rewrite_template =
