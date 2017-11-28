@@ -44,9 +44,9 @@ rule read = parse
 }
 | eof { EOF }
 
-(* read until we hit whitespace, a new line, or some kind of delimiter *)
+(* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators | '\'' | '"'
 {
   let k = String.length (Lexing.lexeme lexbuf) in
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
@@ -57,11 +57,10 @@ and read_const buf = parse
 
 and read_string_literal_double buf = parse
 | '"'      { CONST (Buffer.contents buf) }
-| [^ '"' '\n']+
+| [^ '"']+
   { Buffer.add_string buf (Lexing.lexeme lexbuf);
     read_string_literal_double buf lexbuf
   }
-| '\n'
 | eof  { failwith "String is not terminated" }
 | _    {
   let pos = lexbuf.lex_curr_p in
@@ -71,11 +70,10 @@ and read_string_literal_double buf = parse
 
 and read_string_literal_single buf = parse
 | '\''      { CONST (Buffer.contents buf) }
-| [^ '\'' '\n']+
+| [^ '\'']+
   { Buffer.add_string buf (Lexing.lexeme lexbuf);
     read_string_literal_single buf lexbuf
   }
-| '\n'
 | eof  { failwith "String is not terminated" }
 | _    {
   let pos = lexbuf.lex_curr_p in

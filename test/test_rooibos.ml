@@ -207,6 +207,16 @@ let test_match _ =
     (env_of_result !":[1]" !{|'it is wednesday'|});
 
   assert_equal
+    (make_env [("1", !{|"lex"|})])
+    (env_of_result !"!:[1]" !{|!"lex"|});
+
+  assert_equal
+    (make_env [("1", !"\"lex across\n           newlines\"")])
+    (env_of_result !":[1];"
+       !{|"lex across
+           newlines";|});
+
+  assert_equal
     (make_env [("1", !{|printf("\033[38;5;0m");|})])
     (env_of_result !":[1]" !{|printf("\033[38;5;0m");|});
 
