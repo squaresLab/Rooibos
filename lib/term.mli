@@ -7,11 +7,11 @@ type variable = string * int
     (optionally) bracket-delimited sequences of terms
     (i.e., compound terms).*)
 type t =
-  | Break
-  | White of constant
-  | Var of variable
-  | Const of constant
-  | Compound of constant * t list
+  | Break of Location.Range.t
+  | White of constant * Location.Range.t
+  | Var of variable * Location.Range.t
+  | Const of constant * Location.Range.t
+  | Compound of constant * t list * Location.Range.t
 
 (** [contains term var] returns [true] when term [term] contains
     variable instance [var] *)
