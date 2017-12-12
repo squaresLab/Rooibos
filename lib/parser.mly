@@ -60,7 +60,7 @@ literal:
 | CONST
   { Const ($1, (Location.Range.make $startpos $endpos)) }
 | HOLE
-  { Var   ($1, 0, (Location.Range.make $startpos $endpos)) }
+  { Var   (($1, 0), (Location.Range.make $startpos $endpos)) }
 | WHITESPACE
   { White ($1, (Location.Range.make $startpos $endpos)) }
 | HOLE HOLE
