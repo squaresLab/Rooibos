@@ -16,6 +16,12 @@ let make pos =
     ; column  = pos.pos_cnum - pos.pos_bol (* TO SET POS_BOL *)
     }
 
+let mock =
+  { offset = 0
+  ; line = 0
+  ; column = 0
+  }
+
 module Range = struct
   type nonrec t =
     { start : t
@@ -31,4 +37,7 @@ module Range = struct
   let loc_to_s = to_string
   let to_string range =
     (loc_to_s range.start) ^ "::" ^ (loc_to_s range.stop)
+
+  let mock_loc = mock
+  let mock = make mock_loc mock_loc
 end

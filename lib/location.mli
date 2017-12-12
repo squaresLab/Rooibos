@@ -25,6 +25,8 @@ module Range : sig
   val make : k -> k -> t
 
   val to_string : t -> string
+
+  val mock : t
 end
 
 val to_string : t -> string
