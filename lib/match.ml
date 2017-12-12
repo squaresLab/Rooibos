@@ -63,16 +63,16 @@ let rec skip_until_not_white = function
 
 let rec find_aux env template source : (Environment.t * Location.Range.t) =
   match template, source with
-  | Const c1, Const c2 when c1 = c2 -> env, loc
-  | White _, White _ -> env, loc
-  | Break, Break -> env, loc
-  | Compound ("block", lhs), Compound ("block", rhs) ->
+  | Const (c1, _), Const (c2, loc) when c1 = c2 -> env, loc
+  | White _, White (_, loc) -> env, loc
+  | Break _, Break loc -> env, loc
+  | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
     find_list env lhs rhs
-  | Compound (c1, [b1]), Compound(c2, [b2]) when c1 = c2 ->
-    let env, _ = find_aux env b1 b2 in
+  | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
+    let env, loc = find_aux env b1 b2 in
     env, loc
-  | Var v, term ->
-    (Environment.add env v term), loc
+  | Var (v, _), term ->
+    (Environment.add env v term), (Term.range term)
   | _, _ ->
     raise NoMatch
 
