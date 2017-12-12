@@ -13,6 +13,10 @@ module Range : sig
     ; stop : t
     }
 
+  (* [make start stop] constructs a location range that spans all characters
+      starting from [start] until [stop], inclusive. *)
+  val make : k -> k -> t
+
   val to_string : t -> string
 end
 

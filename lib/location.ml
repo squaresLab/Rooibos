@@ -22,6 +22,9 @@ module Range = struct
     ; stop : t
     }
 
+  let make start stop =
+    { start = start; stop = stop }
+
   let loc_to_s = to_string
   let to_string range =
     (loc_to_s range.start) ^ "::" ^ (loc_to_s range.stop)
