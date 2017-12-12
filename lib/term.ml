@@ -20,11 +20,7 @@ let rec contains term variable =
   | White _
   | Break -> false
 
-let range _ =
-  let open Location in
-  { Range.start_ = { line = 0; column = 0 }
-  ; Range.end_ = { line = 0; column = 0 }
-  }
+let range _ = Location.Range.mock
 
 let rec to_string = function
   | Break -> "CR"

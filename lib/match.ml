@@ -6,12 +6,7 @@ type t = Environment.t
 
 exception NoMatch
 
-let loc =
-  let open Location in
-  { Range.start_ = { line = 0; column = 0 }
-  ; Range.end_ = { line = 0; column = 0 }
-  }
-
+let loc = Location.Range.mock
 
 (** Helper function to add a single term to a Var during matching *)
 let add_term env v term =
