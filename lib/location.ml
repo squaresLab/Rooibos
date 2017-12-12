@@ -41,5 +41,7 @@ module Range = struct
     (loc_to_s range.start) ^ "::" ^ (loc_to_s range.stop)
 
   let mock_loc = mock
-  let mock = make mock_loc mock_loc
+  let mock =
+    { start = mock_loc
+    ; stop  = mock_loc }
 end
