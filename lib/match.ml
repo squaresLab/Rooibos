@@ -6,23 +6,27 @@ type t = Environment.t
 
 exception NoMatch
 
-let loc = Location.Range.mock
-
 (** Helper function to add a single term to a Var during matching *)
 let add_term env v term =
-  match Environment.lookup env v with
-  | Compound ("block", existing_terms) ->
-    (* Var is a block, so append the new term *)
-    let matches = Compound ("block", existing_terms @ [term]) in
-    Environment.add env v matches
-  | Var _ ->
-    (* Var does not exist, so add a term and continue *)
-    Environment.add env v term
-  (* var has only been matched with one term, extend it to be a compound. and
-     continue *)
+  let open Location.Range in
+  let { stop = loc_stop; _ } = Term.range term in
+  let term' = match Environment.lookup env v with
+  (* Var is a block, so append the new term *)
+  | Compound ("block", existing_terms, { start = loc_start; _ }) ->
+    let loc = Location.Range.construct loc_start loc_stop in
+    Compound ("block", existing_terms @ [term], loc)
+
+  (* Var does not exist, so add a term and continue *)
+  | Var _ -> term
+
+  (* var has only been matched with one term; construct a block from the given
+   * term and the existing term. *)
   | existing_term ->
-    let matches = Compound ("block", existing_term::[term]) in
-    Environment.add env v matches
+    let { start = loc_start ; _ } = Term.range existing_term in
+    let loc = Location.Range.construct loc_start loc_stop in
+    Compound ("block", existing_term::[term], loc)
+  in
+    Environment.add env v term'
 
 
 (** Helper function to add a multiple terms to a Var during matching *)
