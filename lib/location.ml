@@ -23,9 +23,10 @@ let mock =
   }
 
 module Range = struct
-  type nonrec t =
-    { start : t
-    ; stop : t
+  type k = t
+  type t =
+    { start : k
+    ; stop : k
     }
 
   let make start stop =
