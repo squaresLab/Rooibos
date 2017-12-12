@@ -8,9 +8,10 @@ type t =
 val make : Lexing.position -> t
 
 module Range : sig
-  type nonrec t =
-    { start : t
-    ; stop : t
+  type k = t
+  type t =
+    { start : k
+    ; stop : k
     }
 
   (* [start range] returns the location at which [range] begins. *)
