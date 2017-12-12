@@ -22,7 +22,7 @@ module Range : sig
 
   (* [make start stop] constructs a location range that spans all characters
       starting from [start] until [stop], inclusive. *)
-  val make : k -> k -> t
+  val make : Lexing.position -> Lexing.position -> t
 
   val to_string : t -> string
 
