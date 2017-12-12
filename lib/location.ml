@@ -9,6 +9,13 @@ type t =
 let to_string loc =
   (Int.to_string loc.line) ^ ":" ^ (Int.to_string loc.column)
 
+let make pos =
+  let open Lexing in
+    { offset  = pos.pos_cnum
+    ; line    = pos.pos_lnum
+    ; column  = pos.pos_cnum - pos.pos_bol (* TO SET POS_BOL *)
+    }
+
 module Range = struct
   type nonrec t =
     { start : t

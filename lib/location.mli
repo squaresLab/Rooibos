@@ -4,6 +4,9 @@ type t =
   ; offset  : int
   }
 
+(* [make] constructs a location from a lexer position [pos] *)
+val make : Lexing.position -> t
+
 module Range : sig
   type nonrec t =
     { start : t
