@@ -13,6 +13,12 @@ module Range : sig
     ; stop : t
     }
 
+  (* [start range] returns the location at which [range] begins. *)
+  val start : t -> k
+
+  (* [stop range] returns the location at which [range] ends. *)
+  val stop : t -> k
+
   (* [make start stop] constructs a location range that spans all characters
       starting from [start] until [stop], inclusive. *)
   val make : k -> k -> t
