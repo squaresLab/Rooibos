@@ -24,6 +24,8 @@ module Range : sig
       starting from [start] until [stop], inclusive. *)
   val make : Lexing.position -> Lexing.position -> t
 
+  val construct : k -> k -> t
+
   val to_string : t -> string
 
   val mock : t

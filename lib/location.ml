@@ -29,9 +29,12 @@ module Range = struct
     ; stop : k
     }
 
+  let construct start stop =
+    { start = start ; stop = stop }
   let make_loc = make
   let make start stop =
-    { start = (make_loc start); stop = (make_loc stop) }
+    construct (make_loc start) (make_loc stop)
+
 
   let start range = range.start
   let stop range = range.stop
