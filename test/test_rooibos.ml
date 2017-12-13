@@ -76,14 +76,14 @@ let test_parser _ =
     (fun () -> !"(x(:[_]())");
 
   assert_equal
-    ~printer:Term.to_string
+    ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("foo",  (rg "1:1#1:3"));
                          White (" ",    (rg "1:4#1:4"));
                          Const ("=",    (rg "1:5#1:5"));
                          White (" ",    (rg "1:6#1:6"));
                          Const ("bar",  (rg "1:7#1:9"));
                          Const (";",    (rg "1:10#1:10"))],
-               (rg "1:1#1:6")))
+               (rg "1:1#1:10")))
     (!"foo = bar;");
 
   assert_equal
