@@ -13,7 +13,12 @@ let dump lexbuf =
 let lshift_start lexbuf k =
   lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - k;
   lexbuf.lex_start_p <-
-    { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
+    { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
+
+let lshift_curr lexbuf k =
+  (*lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;*)
+  lexbuf.lex_curr_p <-
+    { lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
   dump lexbuf
 }
 
@@ -57,9 +62,14 @@ rule read = parse
 
 (* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators | '\'' | '"' | eof
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | white | newline | separators | '\'' | '"' | eof
 {
+  let k = String.length (Lexing.lexeme lexbuf) in
   lshift_start lexbuf (Buffer.length buf);
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
+  lexbuf.lex_curr_p <-
+    { lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
+  (*lshift_curr lexbuf k;*)
   CONST (Buffer.contents buf)
 }
 | eof
