@@ -10,7 +10,7 @@ let dump lexbuf =
   let to_s pos = Location.to_string (Location.make pos) in
   Printf.printf "Start, End: (%s, %s)\n" (to_s lexbuf.lex_start_p) (to_s lexbuf.lex_curr_p)
 
-let rollback_start lexbuf k =
+let lshift_start lexbuf k =
   lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - k;
   lexbuf.lex_start_p <-
     { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
@@ -59,12 +59,12 @@ rule read = parse
 and read_const buf = parse
 | ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators | '\'' | '"' | eof
 {
-  rollback_start lexbuf (Buffer.length buf);
+  lshift_start lexbuf (Buffer.length buf);
   CONST (Buffer.contents buf)
 }
 | eof
 {
-  rollback_start lexbuf ((Buffer.length buf) - 1);
+  lshift_start lexbuf ((Buffer.length buf) - 1);
   CONST (Buffer.contents buf)
 }
 | _ as c  {
