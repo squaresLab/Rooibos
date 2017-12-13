@@ -74,12 +74,12 @@ let test_parser _ =
     (fun () -> !"(x(:[_]())");
 
   assert_equal
-    ~printer:Term.to_string
+    ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
     (!"x:[1]");
 
   assert_equal
-    ~printer:Term.to_string
+    ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("xy", (rg "1:1#1:2")); Var (("1",0), (rg "1:3#1:6"))], (rg "1:1#1:6")))
     (!"xy:[1]");
 
