@@ -72,6 +72,14 @@ let test_location _ =
     (Const ("foo", (rg "1:1#1:3")))
     (!"foo");
 
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const ("foo",  (rg "1:1#1:3"));
+                         White (" ",    (rg "1:4#1:4"));
+                         Const ("bar",  (rg "1:5#1:7"))],
+               (rg "1:1#1:7")))
+    (!"foo bar");
+
    assert_equal
     ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
