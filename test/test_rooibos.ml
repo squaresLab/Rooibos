@@ -10,6 +10,24 @@ let pp_position formatter lexbuf =
   Format.fprintf formatter "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
+(* Produces a Location.range.t from a string of the
+ * form "line:char::line:char". *)
+let rg s =
+  let loc_from_s s : Location.t =
+    let line, col = match Str.split (Str.regexp ":") s with
+      | line::col::[] ->
+        (Int.of_string line), (Int.of_string col)
+      | _ -> failwith "illegal string format for location\n"
+    in
+      Location.construct line col (-1)
+  in
+  let start, stop = match Str.split (Str.regexp "::") s with
+    | start::stop::[] ->
+        (loc_from_s start), (loc_from_s stop)
+    | _ -> failwith "illegal string format for location range\n"
+  in
+    Location.Range.construct start stop
+
 let (!) s =
   let lexbuf = Lexing.from_string s in
   try Parser.main Lexer.read lexbuf with
@@ -48,7 +66,7 @@ let test_parser _ =
 
   assert_equal
     ~printer:Term.to_string
-    (Compound ("block",[Const "x"; Var ("1",0)]))
+    (Compound ("block", [Const ("x", (rg "1:1::1:1")); Var ("1",0, (rg "1:2::1:5"))], (rg "1:1::1:5")))
     (!"x:[1]");
 
   assert_equal
