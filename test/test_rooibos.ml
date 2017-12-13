@@ -67,10 +67,17 @@ let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
 
 let test_location _ =
   (* TODO: we can't test multi-line strings *)
+  (*
   assert_equal
     ~printer:Term.to_string_with_loc
     (Const ("foo", (rg "1:1#1:3")))
     (!"foo");
+  *)
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (White (" ", (rg "1:4#1:4")))
+    (!" ");
 
   assert_equal
     ~printer:Term.to_string_with_loc
