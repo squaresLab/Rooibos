@@ -50,11 +50,13 @@ let format s =
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
 
+
 let test_location _ =
    assert_equal
     ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
     (!"x:[1]")
+
 
 let test_parser _ =
   !"" |> ignore;
@@ -72,6 +74,17 @@ let test_parser _ =
   assert_fails_with_message
     ":1:11: syntax error in (x(:[_]())\n"
     (fun () -> !"(x(:[_]())");
+
+  assert_equal
+    ~printer:Term.to_string
+    (Compound ("block", [Const ("foo",  (rg "1:1#1:3"));
+                         White (" ",    (rg "1:4#1:4"));
+                         Const ("=",    (rg "1:5#1:5"));
+                         White (" ",    (rg "1:6#1:6"));
+                         Const ("bar",  (rg "1:7#1:9"));
+                         Const (";",    (rg "1:10#1:10"))],
+               (rg "1:1#1:6")))
+    (!"foo = bar;");
 
   assert_equal
     ~printer:Term.to_string_with_loc
