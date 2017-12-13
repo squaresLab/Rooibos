@@ -28,6 +28,15 @@ let range = function
   | Const     (_, loc)    -> loc
   | Compound  (_, _, loc) -> loc
 
+let strip term =
+  let l = Location.Range.mock in
+  match term with
+  | Break _ -> Break l
+  | White (w, _) -> White (w, l)
+  | Var (v, _) -> Var (v, l)
+  | Const (c, _) -> Const (c, l)
+  | Compound (c, ls, _) -> Compound (c, ls, l)
+
 let rec to_string = function
   | Break _ -> "CR"
   | White (w, _) -> Format.sprintf "W(%S)" w

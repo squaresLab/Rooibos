@@ -20,4 +20,8 @@ val contains : t -> variable -> bool
 (** [range term] returns the range of locations covered by term [term]. *)
 val range : t -> Location.Range.t
 
+(** [strip term] returns a given term [term] with its location information
+ *  replaced with mock data. *)
+val strip : t -> t
+
 val to_string : t -> string
