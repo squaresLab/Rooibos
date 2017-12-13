@@ -218,7 +218,7 @@ let rec shift_source n source : Term.t option =
     let terms = List.drop terms n in
     let loc = begin match List.rev terms with
       | [] -> Location.Range.mock (* TODO ewww *)
-      | last_term::_::_ ->
+      | last_term::_ ->
         let { stop = loc_stop; _ } = Term.range last_term in
           Location.Range.construct loc_start loc_stop
     end in
