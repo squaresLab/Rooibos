@@ -10,6 +10,9 @@ let pp_position formatter lexbuf =
   Format.fprintf formatter "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
+(* Alias for Location.Range.mock *)
+let mockrg = Location.Range.mock
+
 (* Produces a Location.range.t from a string of the
  * form "line:char::line:char". *)
 let rg s =
@@ -609,7 +612,7 @@ let test_printer _ =
 
   let env =
     let env = Environment.create () in
-    Environment.add env ("1",0) (Term.Const ":)") in
+    Environment.add env ("1",0) (Term.Const (":)", mockrg)) in
   let term =
     !":[1]"
     |> Environment.substitute env in
@@ -619,7 +622,7 @@ let test_printer _ =
 
   let env =
     let env = Environment.create () in
-    Environment.add env ("1",0) (Term.Const "dst") in
+    Environment.add env ("1",0) (Term.Const ("dst", mockrg)) in
   let term =
     !"strcpy(:[1],src)"
     |> Environment.substitute env in
