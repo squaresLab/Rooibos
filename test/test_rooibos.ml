@@ -66,7 +66,7 @@ let test_parser _ =
 
   assert_equal
     ~printer:Term.to_string
-    (Compound ("block", [Const ("x", (rg "1:1::1:1")); Var ("1",0, (rg "1:2::1:5"))], (rg "1:1::1:5")))
+    (Compound ("block", [Const ("x", (rg "1:1::1:1")); Var (("1",0), (rg "1:2::1:5"))], (rg "1:1::1:5")))
     (!"x:[1]");
 
   assert_equal
