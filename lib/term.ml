@@ -39,7 +39,7 @@ let rec strip term =
     let ls = List.map ~f:strip ls in
       Compound (c, ls, l)
 
-let rec _to_string term (with_location : bool) =
+let rec _to_string (with_location : bool) (term : t) =
   let loc = match with_location with
   | true -> "[" ^ (Location.Range.to_string (range term)) ^ "]"
   | false -> ""
@@ -56,7 +56,7 @@ let rec _to_string term (with_location : bool) =
       | "block" -> (loc ^ "<"), ">"
       | _ -> ("N_" ^ f ^ loc ^ "("), ")"
     end in
-    prefix ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ suffix
+    prefix ^ (String.concat ~sep:", " (List.map ~f:(_to_string true) ls)) ^ suffix
 
-and to_string_with_loc term = _to_string term true
-and to_string term = _to_string term false
+and to_string_with_loc term = _to_string true term
+and to_string term = _to_string false term
