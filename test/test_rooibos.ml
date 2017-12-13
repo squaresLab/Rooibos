@@ -71,7 +71,7 @@ let test_parser _ =
 
   assert_equal
     ~printer:Term.to_string
-    (Compound ("block",[Const "xy"; Var ("1",0)]))
+    (Compound ("block", [Const ("xy", (rg "1:1::1:2")); Var (("1",0), (rg "1:3::1:6"))], (rg "1:1::1:6")))
     (!"xy:[1]");
 
   assert_raises
