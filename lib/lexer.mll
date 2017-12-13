@@ -16,10 +16,9 @@ let lshift_start lexbuf k =
     { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
 
 let lshift_curr lexbuf k =
-  (*lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;*)
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
   lexbuf.lex_curr_p <-
-    { lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
-  dump lexbuf
+    { lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
 }
 
 let newline = '\n' |'\r' | "\r\n"
@@ -65,11 +64,8 @@ and read_const buf = parse
 | ":[" | '[' | ']' | '{' | '}' | '(' | ')' | white | newline | separators | '\'' | '"' | eof
 {
   let k = String.length (Lexing.lexeme lexbuf) in
+  lshift_curr lexbuf k;
   lshift_start lexbuf (Buffer.length buf);
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
-  lexbuf.lex_curr_p <-
-    { lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
-  (*lshift_curr lexbuf k;*)
   CONST (Buffer.contents buf)
 }
 | eof

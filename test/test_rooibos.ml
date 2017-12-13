@@ -76,20 +76,22 @@ let test_location _ =
 
   assert_equal
     ~printer:Term.to_string_with_loc
-    (White (" ", (rg "1:4#1:4")))
+    (White (" ", (rg "1:0#1:1")))
     (!" ");
 
   assert_equal
     ~printer:Term.to_string_with_loc
-    (Compound ("block", [Const ("foo",  (rg "1:1#1:3"));
-                         White (" ",    (rg "1:4#1:4"));
-                         Const ("bar",  (rg "1:5#1:7"))],
-               (rg "1:1#1:7")))
+    (Compound ("block", [Const ("foo",  (rg "1:0#1:3"));
+                         White (" ",    (rg "1:3#1:4"));
+                         Const ("bar",  (rg "1:4#1:7"))],
+               (rg "1:0#1:7")))
     (!"foo bar");
 
    assert_equal
     ~printer:Term.to_string_with_loc
-    (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
+    (Compound ("block", [Const ("x", (rg "1:0#1:1"));
+                         Var (("1",0), (rg "1:1#1:5"))],
+               (rg "1:0#1:5")))
     (!"x:[1]")
 
 
