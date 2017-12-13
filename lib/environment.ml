@@ -28,6 +28,19 @@ let rec substitute env = function
   | Compound (c, ls, loc) ->
       Compound (c, List.map ~f:(substitute env) ls, loc) (* TODO: hacky *)
 
+let strip env =
+  let entries =
+    List.map ~f:(fun v -> v, (lookup env v)) (vars env)
+  in
+  let entries =
+    List.map ~f:(fun (v, t) -> v, (Term.strip t)) entries
+  in
+  let env' = create () in
+  let env' =
+    List.fold_left ~f:(fun env' (v, t) -> add env' v t) ~init:env' entries
+  in
+    env'
+
 let to_string env =
     match List.filter ~f:(fun ((_, n), _) -> n = 0) env with
   | [] -> "Yes"
