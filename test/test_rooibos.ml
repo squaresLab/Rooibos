@@ -50,6 +50,12 @@ let format s =
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
 
+let test_location _ =
+   assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
+    (!"x:[1]")
+
 let test_parser _ =
   !"" |> ignore;
   !"x" |> ignore;
