@@ -9,6 +9,12 @@ let dump lexbuf =
   let open Lexing in
   let to_s pos = Location.to_string (Location.make pos) in
   Printf.printf "Start, End: (%s, %s)\n" (to_s lexbuf.lex_start_p) (to_s lexbuf.lex_curr_p)
+
+let rollback_start lexbuf k =
+  lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - k;
+  lexbuf.lex_start_p <-
+    { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k };
+  dump lexbuf
 }
 
 let newline = '\n' |'\r' | "\r\n"
@@ -53,11 +59,12 @@ rule read = parse
 and read_const buf = parse
 | ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators | '\'' | '"' | eof
 {
-  let k = Buffer.length buf in
-  let offset = k - 1 in
-  lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - offset;
-  lexbuf.lex_start_p <-
-    { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - offset };
+  rollback_start lexbuf (Buffer.length buf);
+  CONST (Buffer.contents buf)
+}
+| eof
+{
+  rollback_start lexbuf ((Buffer.length buf) - 1);
   CONST (Buffer.contents buf)
 }
 | _ as c  {
