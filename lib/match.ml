@@ -61,18 +61,17 @@ let rec skip_until_not_white = function
   | x -> x
 
 
-let rec find_aux env template source : (Environment.t * Location.Range.t) =
+let rec find_aux env template source : Environment.t =
   match template, source with
-  | Const (c1, _), Const (c2, loc) when c1 = c2 -> env, loc
-  | White _, White (_, loc) -> env, loc
-  | Break _, Break loc -> env, loc
+  | Const (c1, _), Const (c2, loc) when c1 = c2 -> env
+  | White _, White _ -> env
+  | Break _, Break _ -> env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
     find_list env lhs rhs
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
-    let env, loc = find_aux env b1 b2 in
-    env, loc
+    find_aux env b1 b2
   | Var (v, _), term ->
-    (Environment.add env v term), (Term.range term)
+    Environment.add env v term
   | _, _ ->
     raise NoMatch
 
@@ -117,7 +116,7 @@ and find_list env lhs rhs =
       | start::rhs_tl ->
         let env = Environment.add env v start in
         find_list env lhs_continue_match rhs_tl
-      | [] -> env, (Location.Range.mock) (* Var associates with nothing, end of the list *)
+      | [] -> env (* Var associates with nothing, end of the list *)
     end
 
   | (Var (v, _))::suffix::rest as lhs_continue_match,
@@ -127,7 +126,7 @@ and find_list env lhs rhs =
          also processed everything inside suffix, so we are done there too. *)
       | Compound (c1, terms_lhs, _), Compound (c2, terms_rhs, _)
         when c1 = c2 ->
-        let env,_ = find_list env terms_lhs terms_rhs in (* XXX loc *)
+        let env = find_list env terms_lhs terms_rhs in
         find_list env rest rhs_tl
       (* we are done with this var, and suffix. continue with the rest *)
       | Const (c1, _), Const (c2, _) when c1 = c2 ->
@@ -153,13 +152,11 @@ and find_list env lhs rhs =
                  end *)
               | hd::_ when hd = suffix ->
                 let env = add_term env v term in
-                (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
               (* add the term and the 'next' white space since it is not suffix *)
               | _ ->
                 let env = add_term env v term in
                 let env = add_term env v next in
-                (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
             end
           (* if other next term, add this term and continue. other will be
@@ -174,29 +171,27 @@ and find_list env lhs rhs =
   (* We kept consuming and adding terms to var's list, and reached the end of
      source. Just return env *)
   | [Var _], [] ->
-      env, (Location.Range.mock) (* TODO *)
+      env
 
   | [Var (v, _)], [term] ->
-    let env = add_term env v term in (* XXX fix up loc *)
-    env, (Term.range term)
+    add_term env v term
 
   | [Var (v, _)], last_terms ->
-    let env = add_terms env v last_terms in
-    env, Location.Range.mock (*TODO fix *)
+    add_terms env v last_terms
 
   | Compound ("block", lhs, _)::lhs_tl, Compound ("block", rhs, _)::rhs_tl ->
-    let env,_ = find_list env lhs rhs in (* XXX take care of loc *)
+    let env = find_list env lhs rhs in
     find_list env lhs_tl rhs_tl
 
   | Compound (c1, [b1], _)::lhs_tl, Compound (c2, [b2], _)::rhs_tl ->
-    let env,_ = find_aux env b1 b2 in (* XXX take care of loc *)
+    let env = find_aux env b1 b2 in
     find_list env lhs_tl rhs_tl
 
   | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
   | [], _ ->
-    env, Location.Range.mock
+    env
 
   | _, _ ->
     raise NoMatch
@@ -204,7 +199,7 @@ and find_list env lhs rhs =
 
 let find template source =
   let env = Environment.create () in
-  try Some (find_aux env template source |> fst)
+  try Some (find_aux env template source)
   with _ -> None
 
 
@@ -256,7 +251,7 @@ let rec find_shift acc template source =
     | None -> acc
   in
   try
-    let env, _ = find_aux (Environment.create ()) template source in
+    let env = find_aux (Environment.create ()) template source in
     let acc = env::acc in
     let var = Environment.vars env |> List.hd_exn in
     let term = Environment.lookup env var in
