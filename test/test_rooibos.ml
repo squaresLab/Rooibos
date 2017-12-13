@@ -114,23 +114,27 @@ let test_parser _ =
 
   assert_equal
     ~printer:Term.to_string_with_loc
-    (Compound ("block", [Const ("foo",  (rg "1:1#1:3"));
-                         White (" ",    (rg "1:4#1:4"));
-                         Const ("=",    (rg "1:5#1:5"));
-                         White (" ",    (rg "1:6#1:6"));
-                         Const ("bar",  (rg "1:7#1:9"));
-                         Const (";",    (rg "1:10#1:10"))],
-               (rg "1:1#1:10")))
+    (Compound ("block", [Const ("foo",  (rg "1:0#1:3"));
+                         White (" ",    (rg "1:3#1:4"));
+                         Const ("=",    (rg "1:4#1:5"));
+                         White (" ",    (rg "1:5#1:6"));
+                         Const ("bar",  (rg "1:6#1:9"));
+                         Const (";",    (rg "1:9#1:10"))],
+               (rg "1:0#1:10")))
     (!"foo = bar;");
 
   assert_equal
     ~printer:Term.to_string_with_loc
-    (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
+    (Compound ("block", [Const  ("x",     (rg "1:0#1:1"));
+                         Var    (("1",0), (rg "1:1#1:5"))],
+               (rg "1:0#1:5")))
     (!"x:[1]");
 
   assert_equal
     ~printer:Term.to_string_with_loc
-    (Compound ("block", [Const ("xy", (rg "1:1#1:2")); Var (("1",0), (rg "1:3#1:6"))], (rg "1:1#1:6")))
+    (Compound ("block", [Const  ("xy",    (rg "1:0#1:2"));
+                         Var    (("1",0), (rg "1:2#1:6"))],
+               (rg "1:0#1:6")))
     (!"xy:[1]");
 
   assert_raises
@@ -682,13 +686,12 @@ let test_printer _ =
   let suite =
     "test" >::: [
       "test_location" >:: test_location
-    (*
     ; "test_parser" >:: test_parser
     ; "test_match" >:: test_match
     ; "test_end_to_end" >:: test_end_to_end
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
-    ; "test_all_match" >:: test_all_match *)
+    ; "test_all_match" >:: test_all_match
     ]
 
 let () = run_test_tt_main suite
