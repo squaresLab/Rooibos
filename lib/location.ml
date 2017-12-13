@@ -16,6 +16,9 @@ let make pos =
     ; column  = pos.pos_cnum - pos.pos_bol (* TO SET POS_BOL *)
     }
 
+let construct line column offset =
+  { line = line ; column = column ; offset = offset }
+
 let mock =
   { offset = 0
   ; line = 0

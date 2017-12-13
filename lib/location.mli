@@ -7,6 +7,10 @@ type t =
 (* [make] constructs a location from a lexer position [pos] *)
 val make : Lexing.position -> t
 
+(* constructs a location that represents a given line [line] and column
+ * [column], and with a given offset [offset]. *)
+val construct : int -> int -> int -> t
+
 module Range : sig
   type k = t
   type t =
