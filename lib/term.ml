@@ -56,7 +56,7 @@ let rec _to_string (with_location : bool) (term : t) =
       | "block" -> (loc ^ "<"), ">"
       | _ -> ("N_" ^ f ^ loc ^ "("), ")"
     end in
-    prefix ^ (String.concat ~sep:", " (List.map ~f:(_to_string true) ls)) ^ suffix
+    prefix ^ (String.concat ~sep:", " (List.map ~f:(_to_string with_location) ls)) ^ suffix
 
 and to_string_with_loc term = _to_string true term
 and to_string term = _to_string false term
