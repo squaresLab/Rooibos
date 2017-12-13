@@ -22,7 +22,7 @@ let rg s =
         (Int.of_string line), (Int.of_string col)
       | _ -> failwith "illegal string format for location\n"
     in
-      Location.construct line col (-1)
+      Location.construct line col col
   in
   let start, stop = match String.split s ~on:'#' with
     | start::stop::[] ->
@@ -50,8 +50,23 @@ let format s =
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
 
+let make_env bindings =
+  List.fold bindings
+    ~init:(Environment.create ())
+    ~f:(fun env (v, term) -> Environment.add env (v,0) term)
+
+let env_of_result template source =
+  Option.value_exn (Match.find template source)
+
+let printer = Environment.to_string
+
+let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
+  let e1, e2 = (Environment.strip e1), (Environment.strip e2) in
+    assert_equal ~printer e1 e2
+
 
 let test_location _ =
+  (* TODO: we can't test multi-line strings *)
   assert_equal
     ~printer:Term.to_string_with_loc
     (Const ("foo", (rg "1:1#1:3")))
@@ -108,22 +123,6 @@ let test_parser _ =
   assert_raises
     (Exceptions.ParseError  "Please, no consecutive holes allowed")
     (fun () -> !":[_]:[_]:[_]")
-
-
-
-let make_env bindings =
-  List.fold bindings
-    ~init:(Environment.create ())
-    ~f:(fun env (v, term) -> Environment.add env (v,0) term)
-
-let env_of_result template source =
-  Option.value_exn (Match.find template source)
-
-let printer = Environment.to_string
-
-let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
-  let e1, e2 = (Environment.strip e1), (Environment.strip e2) in
-    assert_equal ~printer e1 e2
 
 
 let test_strip _ =
@@ -665,13 +664,14 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
-      "test_parser" >:: test_parser
-    ; "test_location" >:: test_location
+      "test_location" >:: test_location
+    (*
+    ; "test_parser" >:: test_parser
     ; "test_match" >:: test_match
     ; "test_end_to_end" >:: test_end_to_end
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
-    ; "test_all_match" >:: test_all_match
+    ; "test_all_match" >:: test_all_match *)
     ]
 
 let () = run_test_tt_main suite
