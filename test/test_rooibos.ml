@@ -97,9 +97,12 @@ let env_of_result template source =
 
 let printer = Environment.to_string
 
+let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
+  let e1, e2 = (Environment.strip e1), (Environment.strip e2) in
+    assert_equal ~printer e1 e2
+
 let test_match _ =
-  assert_equal
-    ~printer
+  assert_equiv
     (make_env [(("1"), !"foo")])
     (env_of_result !"x = :[1];" !"x = foo; x = bar;");
 
