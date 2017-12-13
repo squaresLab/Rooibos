@@ -180,47 +180,47 @@ let test_match _ =
     (make_env [("1", !"[0][1]")])
     (env_of_result !"x = foo:[1];" !"x = foo[0][1];");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x"); ("2", !"y")])
     (env_of_result !"strcpy(:[1],:[2])" !"strcpy(x,y)");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"3"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > 3) { x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"f()"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"f()")])
     (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"f()()"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()()) { x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()()()()")])
     (env_of_result !"{:[1]}" !"{()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()")])
     (env_of_result !"{()()():[1]}" !"{()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()()")])
     (env_of_result !"{()()():[1]}" !"{()()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()()()")])
     (env_of_result !"{():[1]}" !"{()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
     (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !".")])
     (env_of_result !"foo:[1]val = 100" !"foo.val = 100");
 
