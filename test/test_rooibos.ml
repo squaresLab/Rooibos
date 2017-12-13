@@ -14,17 +14,17 @@ let pp_position formatter lexbuf =
 let mockrg = Location.Range.mock
 
 (* Produces a Location.range.t from a string of the
- * form "line:char::line:char". *)
+ * form "line:char#line:char". *)
 let rg s =
   let loc_from_s s : Location.t =
-    let line, col = match Str.split (Str.regexp ":") s with
+    let line, col = match String.split s ~on:':' with
       | line::col::[] ->
         (Int.of_string line), (Int.of_string col)
       | _ -> failwith "illegal string format for location\n"
     in
       Location.construct line col (-1)
   in
-  let start, stop = match Str.split (Str.regexp "::") s with
+  let start, stop = match String.split s ~on:'#' with
     | start::stop::[] ->
         (loc_from_s start), (loc_from_s stop)
     | _ -> failwith "illegal string format for location range\n"
@@ -69,12 +69,12 @@ let test_parser _ =
 
   assert_equal
     ~printer:Term.to_string
-    (Compound ("block", [Const ("x", (rg "1:1::1:1")); Var (("1",0), (rg "1:2::1:5"))], (rg "1:1::1:5")))
+    (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
     (!"x:[1]");
 
   assert_equal
     ~printer:Term.to_string
-    (Compound ("block", [Const ("xy", (rg "1:1::1:2")); Var (("1",0), (rg "1:3::1:6"))], (rg "1:1::1:6")))
+    (Compound ("block", [Const ("xy", (rg "1:1#1:2")); Var (("1",0), (rg "1:3#1:6"))], (rg "1:1#1:6")))
     (!"xy:[1]");
 
   assert_raises
