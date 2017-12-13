@@ -25,3 +25,5 @@ val range : t -> Location.Range.t
 val strip : t -> t
 
 val to_string : t -> string
+
+val to_string_with_loc : t -> string

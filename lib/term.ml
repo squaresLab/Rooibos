@@ -39,15 +39,24 @@ let rec strip term =
     let ls = List.map ~f:strip ls in
       Compound (c, ls, l)
 
-let rec to_string = function
-  | Break _ -> "CR"
-  | White (w, _) -> Format.sprintf "W(%S)" w
-  | Var ((v, 0), _) -> "H(" ^ v ^ ")"
-  | Var ((v, n), _) -> "H(" ^ v ^ ", " ^ (string_of_int n) ^ ")"
-  | Const (c, _) -> "C(" ^ c ^ ")"
+let rec _to_string term (with_location : bool) =
+  let loc = match with_location with
+  | true -> "[" ^ (Location.Range.to_string (range term)) ^ "]"
+  | false -> ""
+  in
+  match term with
+  | Break _ -> "CR" ^ loc
+  | White (w, _) -> "W" ^ loc ^ (Format.sprintf "(%S)" w)
+  | Var ((v, 0), _) -> "H" ^ loc ^ "(" ^ v ^ ")"
+  | Var ((v, n), _) ->
+    "H" ^ loc ^ "(" ^ v ^ ", " ^ (string_of_int n) ^ ")"
+  | Const (c, _) -> "C" ^ loc ^ "(" ^ c ^ ")"
   | Compound (f, ls, _) ->
-    let (prefix, suffix) = match f with
-      | "block" -> "<", ">"
-      | _ -> ("N_" ^ f ^ "("), ")"
-    in
+    let (prefix, suffix) = begin match f with
+      | "block" -> (loc ^ "<"), ">"
+      | _ -> ("N_" ^ f ^ loc ^ "("), ")"
+    end in
     prefix ^ (String.concat ~sep:", " (List.map ~f:to_string ls)) ^ suffix
+
+and to_string_with_loc term = _to_string term true
+and to_string term = _to_string term false
