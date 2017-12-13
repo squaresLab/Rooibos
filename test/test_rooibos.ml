@@ -52,6 +52,11 @@ let assert_fails_with_message message f =
 
 
 let test_location _ =
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Const ("foo", (rg "1:1#1:3")))
+    (!"foo");
+
    assert_equal
     ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("x", (rg "1:1#1:1")); Var (("1",0), (rg "1:2#1:5"))], (rg "1:1#1:5")))
@@ -661,6 +666,7 @@ let test_printer _ =
   let suite =
     "test" >::: [
       "test_parser" >:: test_parser
+    ; "test_location" >:: test_location
     ; "test_match" >:: test_match
     ; "test_end_to_end" >:: test_end_to_end
     ; "not_handled_tests" >:: not_handled_tests
