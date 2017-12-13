@@ -122,11 +122,9 @@ let test_match _ =
     (make_env [("1", !"y")])
     (env_of_result !"(x(:[1]()))" !"(x(y()))");
 
-(*
   assert_equiv
     (make_env [("1", !"y()")])
     (env_of_result !"(:[1])" !"(y())");
-*)
 
   assert_equiv
     (make_env [("1", !"x = y")])
@@ -230,7 +228,7 @@ let test_match _ =
 
   (* string literals *)
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !{|"it is wednesday"|})])
     (env_of_result !":[1]" !{|"it is wednesday"|});
 
