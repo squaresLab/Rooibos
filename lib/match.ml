@@ -97,40 +97,40 @@ and find_list env lhs rhs =
   | lhs, White _::rhs_tl ->
     find_list env lhs rhs_tl
 
-  | Break::lhs_tl, Break::rhs_tl ->
+  | (Break _)::lhs_tl, (Break _)::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
-  | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
+  | (Const (c1, _))::lhs_tl, (Const (c2, _))::rhs_tl when c1 = c2 ->
     find_list env lhs_tl rhs_tl
 
   (* Identify start of matching, Part 1: when it is a const before hole *)
-  | Const c1::(Var v::lhs_tl as lhs_continue_match),
-    Const c2::rhs_tl
+  | (Const (c1, _))::((Var (v, _))::lhs_tl as lhs_continue_match),
+    (Const (c2, _))::rhs_tl
 
   (* Identify start of matching, Part 2: when there is whitespace between cons
      and hole *)
-  | Const c1::White _::(Var v::lhs_tl as lhs_continue_match),
-    Const c2::rhs_tl
+  | (Const (c1, _))::White _::((Var (v, _))::lhs_tl as lhs_continue_match),
+    (Const (c2, _))::rhs_tl
 
     when c1 = c2 ->
     begin match skip_until_not_white rhs_tl with
       | start::rhs_tl ->
         let env = Environment.add env v start in
         find_list env lhs_continue_match rhs_tl
-      | [] -> env, loc (* Var associates with nothing, end of the list *)
+      | [] -> env, (Location.Range.mock) (* Var associates with nothing, end of the list *)
     end
 
-  | Var v::suffix::rest as lhs_continue_match,
+  | (Var (v, _))::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
     begin match suffix, term with
       (* Stop matching against this var, we matched a suffix. we are done. we
          also processed everything inside suffix, so we are done there too. *)
-      | Compound (c1, terms_lhs), Compound (c2, terms_rhs)
+      | Compound (c1, terms_lhs, _), Compound (c2, terms_rhs, _)
         when c1 = c2 ->
         let env,_ = find_list env terms_lhs terms_rhs in (* XXX loc *)
         find_list env rest rhs_tl
       (* we are done with this var, and suffix. continue with the rest *)
-      | Const c1, Const c2 when c1 = c2 ->
+      | Const (c1, _), Const (c2, _) when c1 = c2 ->
         find_list env rest rhs_tl
       (* if suffix is whitespace, we need to trim it and continue and try again.
          we know that we will hit some sort of suffix later. therefore it is ok
@@ -140,7 +140,7 @@ and find_list env lhs rhs =
          we skip. I.e., term may be white space here, and we keep it. *)
       | White _, term ->
         let env = add_term env v term in
-        find_list env (Var v::rest) rhs_tl
+        find_list env (Var (v, Location.Range.mock)::rest) rhs_tl (* TODO: this is a bit weird *)
       (* else, not equal, then add term (including whitespace, if any) and continue *)
       | _, term ->
         begin match rhs_tl with
@@ -174,29 +174,29 @@ and find_list env lhs rhs =
   (* We kept consuming and adding terms to var's list, and reached the end of
      source. Just return env *)
   | [Var _], [] ->
-    env, loc
+      env, (Location.Range.mock) (* TODO *)
 
-  | [Var v], [term] ->
+  | [Var (v, _)], [term] ->
     let env = add_term env v term in (* XXX fix up loc *)
-    env, loc
+    env, (Term.range term)
 
-  | [Var v], last_terms ->
+  | [Var (v, _)], last_terms ->
     let env = add_terms env v last_terms in
-    env, loc (* XXX fix up loc *)
+    env, Location.Range.mock (*TODO fix *)
 
-  | Compound ("block", lhs)::lhs_tl, Compound ("block", rhs)::rhs_tl ->
+  | Compound ("block", lhs, _)::lhs_tl, Compound ("block", rhs, _)::rhs_tl ->
     let env,_ = find_list env lhs rhs in (* XXX take care of loc *)
     find_list env lhs_tl rhs_tl
 
-  | Compound (c1, [b1])::lhs_tl, Compound (c2, [b2])::rhs_tl ->
+  | Compound (c1, [b1], _)::lhs_tl, Compound (c2, [b2], _)::rhs_tl ->
     let env,_ = find_aux env b1 b2 in (* XXX take care of loc *)
     find_list env lhs_tl rhs_tl
 
-  | Compound (c1, [])::lhs_tl, Compound (c2, [])::rhs_tl ->
+  | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
   | [], _ ->
-    env, loc
+    env, Location.Range.mock
 
   | _, _ ->
     raise NoMatch
@@ -210,22 +210,29 @@ let find template source =
 
 (** shift a source by n. n only comes into play for blocks AKA lists *)
 let rec shift_source n source : Term.t option =
+  let open Location.Range in
   assert (n > 0);
   match source with
-  | Compound (c, terms)
+  | Compound (c, terms, { start = loc_start ; _ })
     when c = "block" && (List.length terms > 0) ->
     let terms = List.drop terms n in
-    Some (Compound (c, terms))
+    let loc = begin match List.rev terms with
+      | [] -> Location.Range.mock (* TODO ewww *)
+      | last_term::_::_ ->
+        let { stop = loc_stop; _ } = Term.range last_term in
+          Location.Range.construct loc_start loc_stop
+    end in
+      Some (Compound (c, terms, loc))
   | _ -> None
 
 
 let rec bust_out_compounds source : Term.t list =
   match source with
-  | Compound ("block", terms) ->
+  | Compound ("block", terms, _) ->
     List.filter terms
-      ~f:(function | Compound (c, _) when c <> "block" -> true | _ -> false)
+      ~f:(function | Compound (c, _, _) when c <> "block" -> true | _ -> false)
   (* non-block compounds are always just one element of type block. FIXME #36 *)
-  | Compound (c, [terms]) ->
+  | Compound (c, [terms], _) ->
     bust_out_compounds terms
   | _ -> []
 
@@ -233,7 +240,7 @@ let rec bust_out_compounds source : Term.t list =
 (** A way to find the size of the term for advancing *)
 let size (term : Term.t) =
   match term with
-  | Compound ("block", terms) -> List.length terms
+  | Compound ("block", terms, _) -> List.length terms
   | _ -> 1
 
 
@@ -267,13 +274,13 @@ let rec find_shift acc template source =
 let all template source =
   let rec aux acc template source =
     match source with
-    | Compound ("block", terms) as this_level ->
+    | Compound ("block", terms, _) as this_level ->
       let acc = find_shift acc template source in
       let compounds = bust_out_compounds this_level in
       List.fold
         ~init:acc ~f:(fun acc term -> (aux acc template term))
         compounds
-    | Compound (c, [block]) -> aux acc template block
+    | Compound (c, [block], _) -> aux acc template block
     | _ -> acc
   in
   Sequence.of_list (aux [] template source)
