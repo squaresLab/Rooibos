@@ -16,7 +16,7 @@ let make pos =
     ; column  = pos.pos_cnum - pos.pos_bol
     }
 
-let construct line column offset =
+let create line column offset =
   { line = line ; column = column ; offset = offset }
 
 let mock =
@@ -32,11 +32,11 @@ module Range = struct
     ; stop : k
     }
 
-  let construct start stop =
+  let create start stop =
     { start = start ; stop = stop }
   let make_loc = make
   let make start stop =
-    construct (make_loc start) (make_loc stop)
+    create (make_loc start) (make_loc stop)
 
 
   let start range = range.start

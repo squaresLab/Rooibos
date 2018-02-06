@@ -14,7 +14,7 @@ let add_term env v term =
   let term' = match Environment.lookup env v with
   (* Var is a block, so append the new term *)
   | Compound ("block", existing_terms, { start = loc_start; _ }) ->
-    let loc = Location.Range.construct loc_start loc_stop in
+    let loc = Location.Range.create loc_start loc_stop in
     Compound ("block", existing_terms @ [term], loc)
 
   (* Var does not exist, so add a term and continue *)
@@ -24,7 +24,7 @@ let add_term env v term =
    * term and the existing term. *)
   | existing_term ->
     let { start = loc_start ; _ } = Term.range existing_term in
-    let loc = Location.Range.construct loc_start loc_stop in
+    let loc = Location.Range.create loc_start loc_stop in
     Compound ("block", existing_term::[term], loc)
   in
     Environment.add env v term'
@@ -50,7 +50,7 @@ let add_terms env v terms =
   | (start::_, stop::_) ->
     let { start = start_loc ; _ } = Term.range start in
     let { stop = stop_loc ; _ } = Term.range stop in
-      Location.Range.construct start_loc stop_loc
+      Location.Range.create start_loc stop_loc
   | _ -> raise EmptyList
   in
   let term' = Compound ("block", terms, loc) in
@@ -215,7 +215,7 @@ let rec shift_source n source : Term.t option =
       | [] -> Location.Range.mock (* TODO ewww *)
       | last_term::_ ->
         let { stop = loc_stop; _ } = Term.range last_term in
-          Location.Range.construct loc_start loc_stop
+          Location.Range.create loc_start loc_stop
     end in
       Some (Compound (c, terms, loc))
   | _ -> None

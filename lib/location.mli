@@ -9,7 +9,7 @@ val make : Lexing.position -> t
 
 (* constructs a location that represents a given line [line] and column
  * [column], and with a given offset [offset]. *)
-val construct : int -> int -> int -> t
+val create : int -> int -> int -> t
 
 module Range : sig
   type k = t
@@ -24,11 +24,11 @@ module Range : sig
   (* [stop range] returns the location at which [range] ends. *)
   val stop : t -> k
 
-  (* [make start stop] constructs a location range that spans all characters
-      starting from [start] until [stop], inclusive. *)
+  (* [make start stop] constructs a location range that spans all
+      characters starting from [start] until [stop], inclusive. *)
   val make : Lexing.position -> Lexing.position -> t
 
-  val construct : k -> k -> t
+  val create : k -> k -> t
 
   val to_string : t -> string
 
