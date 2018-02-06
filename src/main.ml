@@ -13,9 +13,7 @@ let to_term s =
   | Parser.Error ->
     failwith (Format.asprintf "%a: syntax error in %s\n" pp_position lexbuf s)
 
-let from_file_exn fn =
-  let s = In_channel.read_all fn in
-    to_term s
+let from_file_exn fn = Fn.compose to_term In_channel.read_all
 
 let () =
   match Array.to_list Sys.argv with

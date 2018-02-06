@@ -7,7 +7,6 @@ RUN sudo mkdir -p /opt/rooibos
 WORKDIR /opt/rooibos
 ADD Makefile .
 ADD rooibos.opam .
-ADD rooibos.install .
 ADD lib lib
 ADD src src
 ADD test test
