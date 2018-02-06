@@ -17,7 +17,7 @@ let make pos =
     }
 
 let create line column offset =
-  { line = line ; column = column ; offset = offset }
+  { line ; column; offset }
 
 let mock =
   { offset = 0
@@ -33,7 +33,7 @@ module Range = struct
     }
 
   let create start stop =
-    { start = start ; stop = stop }
+    { start ; stop }
   let make_loc = make
   let make start stop =
     create (make_loc start) (make_loc stop)
@@ -49,5 +49,6 @@ module Range = struct
   let mock_loc = mock
   let mock =
     { start = mock_loc
-    ; stop  = mock_loc }
+    ; stop  = mock_loc
+    }
 end
