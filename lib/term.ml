@@ -40,7 +40,8 @@ let rec strip term =
       Compound (c, ls, l)
 
 let rec _to_string (with_location : bool) (term : t) =
-  let loc = match with_location with
+  let loc =
+  match with_location with
   | true -> "[" ^ (Location.Range.to_string (range term)) ^ "]"
   | false -> ""
   in

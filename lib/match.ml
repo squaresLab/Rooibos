@@ -11,7 +11,8 @@ exception EmptyList
 let add_term env v term =
   let open Location.Range in
   let { stop = loc_stop; _ } = Term.range term in
-  let term' = match Environment.lookup env v with
+  let term' =
+  match Environment.lookup env v with
   (* Var is a block, so append the new term *)
   | Compound ("block", existing_terms, { start = loc_start; _ }) ->
     let loc = Location.Range.create loc_start loc_stop in
@@ -46,7 +47,8 @@ let add_terms env v terms =
 
   (* determine the range of locations covered by the terms bound to the
    * given Var *)
-  let loc = match terms', (List.rev terms') with
+  let loc =
+  match terms', (List.rev terms') with
   | (start::_, stop::_) ->
     let { start = start_loc ; _ } = Term.range start in
     let { stop = stop_loc ; _ } = Term.range stop in
