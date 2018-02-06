@@ -13,7 +13,7 @@ let make pos =
   let open Lexing in
     { offset  = pos.pos_cnum
     ; line    = pos.pos_lnum
-    ; column  = pos.pos_cnum - pos.pos_bol (* TO SET POS_BOL *)
+    ; column  = pos.pos_cnum - pos.pos_bol
     }
 
 let construct line column offset =
