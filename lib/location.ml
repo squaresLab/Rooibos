@@ -38,7 +38,6 @@ module Range = struct
   let make start stop =
     create (make_loc start) (make_loc stop)
 
-
   let start range = range.start
   let stop range = range.stop
 

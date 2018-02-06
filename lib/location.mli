@@ -1,7 +1,7 @@
 type t =
-  { line    : int
-  ; column  : int
-  ; offset  : int
+  { line : int
+  ; column : int
+  ; offset : int
   }
 
 (* [make] constructs a location from a lexer position [pos] *)
