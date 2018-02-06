@@ -5,11 +5,11 @@ type constant = string
 type variable = string * int
 
 type t =
-  | Break     of Location.Range.t
-  | White     of constant * Location.Range.t
-  | Var       of variable * Location.Range.t
-  | Const     of constant * Location.Range.t
-  | Compound  of constant * t list * Location.Range.t
+  | Break of Location.Range.t
+  | White of constant * Location.Range.t
+  | Var of variable * Location.Range.t
+  | Const of constant * Location.Range.t
+  | Compound of constant * t list * Location.Range.t
 
 
 let rec contains term variable =
@@ -22,11 +22,11 @@ let rec contains term variable =
   | Break _ -> false
 
 let range = function
-  | Break     loc         -> loc
-  | White     (_, loc)    -> loc
-  | Var       (_, loc)    -> loc
-  | Const     (_, loc)    -> loc
-  | Compound  (_, _, loc) -> loc
+  | Break loc -> loc
+  | White (_, loc) -> loc
+  | Var (_, loc) -> loc
+  | Const (_, loc) -> loc
+  | Compound (_, _, loc) -> loc
 
 let rec strip term =
   let l = Location.Range.mock in
