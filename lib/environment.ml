@@ -35,9 +35,8 @@ let strip env =
   let entries =
     List.map ~f:(fun (v, t) -> v, (Term.strip t)) entries
   in
-  let env' = create () in
   let env' =
-    List.fold_left ~f:(fun env' (v, t) -> add env' v t) ~init:env' entries
+    List.fold_left ~f:(fun env' (v, t) -> add env' v t) ~init:(create ()) entries
   in
     env'
 
