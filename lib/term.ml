@@ -29,7 +29,7 @@ let range = function
   | Compound (_, _, loc) -> loc
 
 let rec strip term =
-  let l = Location.Range.mock in
+  let l = Location.Range.unknown in
   match term with
   | Break _ -> Break l
   | White (w, _) -> White (w, l)

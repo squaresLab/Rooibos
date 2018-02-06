@@ -17,8 +17,7 @@ let rec lookup (env : t) (var : variable) : Term.t =
   | Some var -> var
   (* CT: I don't really like this behaviour; I think that [lookup] should
    * return [None] if [var] isn't found. *)
-  (* TODO: we have to pass a mock location *)
-  | None -> Var (var, Location.Range.mock)
+  | None -> Var (var, Location.Range.unknown)
 
 let rec substitute env = function
   | Var (var, _) as e ->

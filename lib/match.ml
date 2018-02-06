@@ -139,7 +139,7 @@ and find_list env lhs rhs =
          we skip. I.e., term may be white space here, and we keep it. *)
       | White _, term ->
         let env = add_term env v term in
-        find_list env (Var (v, Location.Range.mock)::rest) rhs_tl (* TODO: this is a bit weird *)
+        find_list env (Var (v, Location.Range.unknown)::rest) rhs_tl (* TODO: this is a bit weird *)
       (* else, not equal, then add term (including whitespace, if any) and continue *)
       | _, term ->
         begin match rhs_tl with
@@ -212,7 +212,7 @@ let rec shift_source n source : Term.t option =
     when c = "block" && (List.length terms > 0) ->
     let terms = List.drop terms n in
     let loc = begin match List.rev terms with
-      | [] -> Location.Range.mock (* TODO ewww *)
+      | [] -> Location.Range.unknown (* TODO ewww *)
       | last_term::_ ->
         let { stop = loc_stop; _ } = Term.range last_term in
           Location.Range.create loc_start loc_stop

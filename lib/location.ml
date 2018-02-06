@@ -19,7 +19,7 @@ let make pos =
 let create line column offset =
   { line ; column; offset }
 
-let mock =
+let unknown =
   { offset = 0
   ; line = 0
   ; column = 0
@@ -45,9 +45,9 @@ module Range = struct
   let to_string range =
     (loc_to_s range.start) ^ "::" ^ (loc_to_s range.stop)
 
-  let mock_loc = mock
-  let mock =
-    { start = mock_loc
-    ; stop  = mock_loc
+  let unknown_location = unknown
+  let unknown =
+    { start = unknown_location
+    ; stop = unknown_location
     }
 end

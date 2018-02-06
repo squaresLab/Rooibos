@@ -32,7 +32,8 @@ module Range : sig
 
   val to_string : t -> string
 
-  val mock : t
+  (* represents an unknown location range *)
+  val unknown : t
 end
 
 val to_string : t -> string
