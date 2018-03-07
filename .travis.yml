@@ -1,0 +1,9 @@
+language: generic
+sudo: required
+services:
+- docker
+install:
+- docker build -t rooibos .
+script: docker run --rm rooibos make test
+notifications:
+  email: false
