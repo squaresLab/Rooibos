@@ -170,7 +170,7 @@ and find_list env lhs rhs =
   (* We kept consuming and adding terms to var's list, and reached the end of
      source. Just return env *)
   | [Var _], [] ->
-      env
+    env
 
   | [Var (v, _)], [term] ->
     add_term env v term
