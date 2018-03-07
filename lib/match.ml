@@ -60,38 +60,38 @@ let rec skip_until_not_white = function
   | x -> x
 
 
-  let rec find_aux env template source : Environment.t =
-    match template, source with
-    | Const (c1, _), Const (c2, loc) when c1 = c2 -> env
-    | White _, White _ -> env
-    | Break _, Break _ -> env
-    | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
-      find_list env lhs rhs
-    | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
-      find_aux env b1 b2
-    | Var (v, _), term ->
-      Environment.add env v term
-    | _, _ ->
-      raise NoMatch
+let rec find_aux env template source : Environment.t =
+  match template, source with
+  | Const (c1, _), Const (c2, loc) when c1 = c2 -> env
+  | White _, White _ -> env
+  | Break _, Break _ -> env
+  | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
+    find_list env lhs rhs
+  | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
+    find_aux env b1 b2
+  | Var (v, _), term ->
+    Environment.add env v term
+  | _, _ ->
+    raise NoMatch
 
-  and find_list env lhs rhs =
-    (* Format.printf "Matching Sz %d %s@.\
-                   With     Sz %d %s@.@."
-      (List.length lhs)
-      (Term.to_string (Compound ("debug", lhs)))
-      (List.length rhs)
-      (Term.to_string (Compound ("debug", rhs))); *)
+and find_list env lhs rhs =
+  (* Format.printf "Matching Sz %d %s@.\
+                 With     Sz %d %s@.@."
+    (List.length lhs)
+    (Term.to_string (Compound ("debug", lhs)))
+    (List.length rhs)
+    (Term.to_string (Compound ("debug", rhs))); *)
 
-    match lhs, rhs with
-    | White _::lhs_tl, rhs ->
-      find_list env lhs_tl rhs
+  match lhs, rhs with
+  | White _::lhs_tl, rhs ->
+    find_list env lhs_tl rhs
 
-    (* FIXME #30 : by default we want to skip white space on the rhs unless we are
-       'in a match'. The problem is, when lhs contains a Var here, we want to keep
-       the whitespace when 'in a match', but skip when 'not matching'. Moving the
-       case after | Var v::suffix ... doesn't work because the | Var v... will
-       bind whitespace before a const, because it is written with the implicit
-       assumption that matching the | Var v case means is 'in a match' *)
+  (* FIXME #30 : by default we want to skip white space on the rhs unless we are
+     'in a match'. The problem is, when lhs contains a Var here, we want to keep
+     the whitespace when 'in a match', but skip when 'not matching'. Moving the
+     case after | Var v::suffix ... doesn't work because the | Var v... will
+     bind whitespace before a const, because it is written with the implicit
+     assumption that matching the | Var v case means is 'in a match' *)
   | lhs, White _::rhs_tl ->
     find_list env lhs rhs_tl
 
