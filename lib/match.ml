@@ -29,37 +29,35 @@ let add_term env v term =
   in
     Environment.add env v term'
 
-(** Helper function to add a multiple terms to a Var during matching *)
+(** Helper function to add multiple terms to a Var during matching *)
 let add_terms env v terms =
   let open Location.Range in
-  let terms' = match Environment.lookup env v with
-  (* Var is a block, so append the term with hole and stop *)
+  let terms' =
+  match Environment.lookup env v with
   | Compound ("block", existing_terms, _) -> existing_terms @ terms
 
   (* Var does not exist, so add a block term and stop *)
   | Var _ -> terms
 
-  (* var has only been matched with one term, extend it to be a
+  (* var has only been matched with one term; extend it to be a
      compound. and continue *)
   | existing_term -> existing_term::terms
   in
 
-  (* determine the range of locations covered by the terms bound to the
-   * given Var *)
-  let loc =
+  let location =
   match terms', (List.rev terms') with
   | (start::_, stop::_) ->
     let { start = start_loc ; _ } = Term.range start in
     let { stop = stop_loc ; _ } = Term.range stop in
       Location.Range.create start_loc stop_loc
-    | _ -> raise NoMatch
-    in
-    let term' = Compound ("block", terms, loc) in
-      Environment.add env v term'
+  | _ -> raise NoMatch
+  in
+  let term' = Compound ("block", terms', location) in
+    Environment.add env v term'
 
-  let rec skip_until_not_white = function
-    | White _::tl -> skip_until_not_white tl
-    | x -> x
+let rec skip_until_not_white = function
+  | White _::tl -> skip_until_not_white tl
+  | x -> x
 
 
   let rec find_aux env template source : Environment.t =
