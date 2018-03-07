@@ -16,6 +16,10 @@ clean:
 uninstall:
 	@jbuilder uninstall
 
+docker-build:
+	docker build -t rooibos .
+	docker run --rm -it rooibos make test
+
 example:
 	@rooibos examples/complex-if-example/template examples/complex-if-example/source examples/complex-if-example/rewrite-template
 	@rooibos examples/large/template examples/large/seahorn.c examples/large/rewrite

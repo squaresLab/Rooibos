@@ -1,6 +1,8 @@
 FROM ocaml/opam
 
-RUN opam update && \
+RUN sudo apt-get update && \
+    sudo apt-get install --no-install-recommends -y vim && \
+    opam update && \
     opam install -y jbuilder core menhir ounit
 
 RUN sudo mkdir -p /opt/rooibos
