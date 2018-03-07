@@ -15,6 +15,9 @@ let to_term s =
 
 let () =
   match Array.to_list Sys.argv with
+  | _ :: "parse" :: source :: _ ->
+    let term = to_term source in
+      Format.printf "%s\n" (Term.to_string_with_loc term)
   | _ :: "-i" :: template :: source :: rewrite_template :: _ ->
     begin match
         Match.all (to_term template) (to_term source)
