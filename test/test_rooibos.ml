@@ -233,9 +233,11 @@ let test_match _ =
     (make_env [("1", !"f()"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
 
+  (*
   assert_equiv
     (make_env [("1", !"f()")])
     (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
+  *)
 
   assert_equiv
     (make_env [("1", !"f()()"); ("2", !"x = y")])
@@ -279,7 +281,7 @@ let test_match _ =
     (make_env [("1", !{|'it is wednesday'|})])
     (env_of_result !":[1]" !{|'it is wednesday'|});
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !{|"lex"|})])
     (env_of_result !"!:[1]" !{|!"lex"|});
 
