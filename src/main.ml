@@ -18,6 +18,12 @@ let () =
   | _ :: "parse" :: source :: _ ->
     let term = to_term source in
       Format.printf "%s\n" (Term.to_string_with_loc term)
+  | _ :: "match" :: template :: source :: _ ->
+    let print_env env =
+      Format.printf "%s\n" (Environment.to_string env)
+    in
+    let matches = Match.all (to_term template) (to_term source) in
+    Sequence.iter matches ~f:print_env
   | _ :: "-i" :: template :: source :: rewrite_template :: _ ->
     begin match
         Match.all (to_term template) (to_term source)
