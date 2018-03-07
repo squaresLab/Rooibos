@@ -10,8 +10,7 @@ let pp_position formatter lexbuf =
   Format.fprintf formatter "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-(* Alias for Location.Range.mock *)
-let mockrg = Location.Range.mock
+let mockrg = Location.Range.unknown
 
 (* Produces a Location.range.t from a string of the
  * form "line:char#line:char". *)
@@ -22,14 +21,14 @@ let rg s =
         (Int.of_string line), (Int.of_string col)
       | _ -> failwith "illegal string format for location\n"
     in
-      Location.construct line col col
+      Location.create line col col
   in
   let start, stop = match String.split s ~on:'#' with
     | start::stop::[] ->
         (loc_from_s start), (loc_from_s stop)
     | _ -> failwith "illegal string format for location range\n"
   in
-    Location.Range.construct start stop
+    Location.Range.create start stop
 
 let (!) s =
   let lexbuf = Lexing.from_string s in
