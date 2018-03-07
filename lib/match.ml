@@ -62,7 +62,7 @@ let rec skip_until_not_white = function
 
 let rec find_aux env template source : Environment.t =
   match template, source with
-  | Const (c1, _), Const (c2, loc) when c1 = c2 -> env
+  | Const (c1, _), Const (c2, _) when c1 = c2 -> env
   | White _, White _ -> env
   | Break _, Break _ -> env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
