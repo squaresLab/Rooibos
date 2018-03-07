@@ -152,6 +152,21 @@ let test_strip _ =
     (Term.strip (!"x:[1]"))
 
 
+(*
+let test_match_add_term _ =
+  let open Match in
+
+  let env = make_env [("foo", !"a")] in
+  let var = "bar", 1 in
+  let term = !"x = 7" in
+  let expected = make_env [("foo", !"a"); ((fst var), term)] in
+  assert_equal
+    ~printer:Environment.to_string
+    expected
+    (add_term env var term)
+*)
+
+
 let test_match _ =
   assert_equiv
     (make_env [(("1"), !"foo")])
@@ -233,11 +248,12 @@ let test_match _ =
     (make_env [("1", !"f()"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
 
-  (*
+  (* FIXME FAILS *)
+  (* the source, template, and match all parse correctly *)
+  (* :[1] binds to "f() " instead of "f()" *)
   assert_equiv
     (make_env [("1", !"f()")])
     (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
-  *)
 
   assert_equiv
     (make_env [("1", !"f()()"); ("2", !"x = y")])
