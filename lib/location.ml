@@ -11,9 +11,9 @@ let to_string loc =
 
 let make pos =
   let open Lexing in
-    { offset  = pos.pos_cnum
-    ; line    = pos.pos_lnum
-    ; column  = pos.pos_cnum - pos.pos_bol
+    { offset = pos.pos_cnum
+    ; line = pos.pos_lnum
+    ; column = pos.pos_cnum - pos.pos_bol
     }
 
 let create line column offset =

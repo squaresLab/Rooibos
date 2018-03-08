@@ -25,7 +25,7 @@ let rec substitute env = function
      if e = e' then e' else substitute env e')
   | White _ | Const _ | Break _ as e -> e
   | Compound (c, ls, loc) ->
-      Compound (c, List.map ~f:(substitute env) ls, loc) (* TODO: hacky *)
+    Compound (c, List.map ~f:(substitute env) ls, loc) (* TODO: hacky *)
 
 let strip env =
   let entries =
