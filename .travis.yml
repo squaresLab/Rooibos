@@ -1,6 +1,7 @@
 language: c
 sudo: false
-script: bash -ex .travis-ci.sh
+script:
+  - bash -ex .travis-ci.sh
 env:
   matrix:
     - OCAML_VERSION=4.05.0
