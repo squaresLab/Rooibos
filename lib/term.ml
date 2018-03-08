@@ -11,7 +11,6 @@ type t =
   | Const of constant * Location.Range.t
   | Compound of constant * t list * Location.Range.t
 
-
 let rec contains term variable =
   match term with
   | Var (y, _) -> variable = y
@@ -20,6 +19,22 @@ let rec contains term variable =
   | Const _
   | White _
   | Break _ -> false
+
+let rec equivalent x y =
+  match x, y with
+  | Break _, Break _ -> true
+  | White (wx, _), White (wy, _) when wx = wy -> true
+  | Const (cx, _), Const (cy, _) when cx = cy -> true
+  | Var (vx, _), Var (vy, _) when vx = vy -> true
+  | Compound (cx, lx, _), Compound (cy, ly, _) when cx = cy ->
+    equivalent_lists lx ly
+  | _ -> false
+and equivalent_lists lx ly =
+  match lx, ly with
+  | [], [] -> true
+  | lx_head::lx_tail, ly_head::ly_tail ->
+    (equivalent lx_head ly_head) && (equivalent_lists lx_tail ly_tail)
+  | _ -> false
 
 let range = function
   | Break loc -> loc
