@@ -10,6 +10,26 @@ let pp_position formatter lexbuf =
   Format.fprintf formatter "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
+let mockrg = Location.Range.unknown
+
+(* Produces a Location.range.t from a string of the
+ * form "line:char#line:char". *)
+let rg s =
+  let loc_from_s s : Location.t =
+    let line, col = match String.split s ~on:':' with
+      | line::col::[] ->
+        (Int.of_string line), (Int.of_string col)
+      | _ -> failwith "illegal string format for location\n"
+    in
+      Location.create line col col
+  in
+  let start, stop = match String.split s ~on:'#' with
+    | start::stop::[] ->
+        (loc_from_s start), (loc_from_s stop)
+    | _ -> failwith "illegal string format for location range\n"
+  in
+    Location.Range.create start stop
+
 let (!) s =
   let lexbuf = Lexing.from_string s in
   try Parser.main Lexer.read lexbuf with
@@ -29,6 +49,51 @@ let format s =
 let assert_fails_with_message message f =
   assert_raises (Failure message) f
 
+let make_env bindings =
+  List.fold bindings
+    ~init:(Environment.create ())
+    ~f:(fun env (v, term) -> Environment.add env (v,0) term)
+
+let env_of_result template source =
+  Option.value_exn (Match.find template source)
+
+let printer = Environment.to_string
+
+let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
+  let e1, e2 = (Environment.strip e1), (Environment.strip e2) in
+    assert_equal ~printer e1 e2
+
+
+let test_location _ =
+  (* TODO: we can't test multi-line strings *)
+  (*
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Const ("foo", (rg "1:1#1:3")))
+    (!"foo");
+  *)
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (White (" ", (rg "1:0#1:1")))
+    (!" ");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const ("foo",  (rg "1:0#1:3"));
+                         White (" ",    (rg "1:3#1:4"));
+                         Const ("bar",  (rg "1:4#1:7"))],
+               (rg "1:0#1:7")))
+    (!"foo bar");
+
+   assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const ("x", (rg "1:0#1:1"));
+                         Var (("1",0), (rg "1:1#1:5"))],
+               (rg "1:0#1:5")))
+    (!"x:[1]")
+
+
 let test_parser _ =
   !"" |> ignore;
   !"x" |> ignore;
@@ -47,13 +112,28 @@ let test_parser _ =
     (fun () -> !"(x(:[_]())");
 
   assert_equal
-    ~printer:Term.to_string
-    (Compound ("block",[Const "x"; Var ("1",0)]))
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const ("foo",  (rg "1:0#1:3"));
+                         White (" ",    (rg "1:3#1:4"));
+                         Const ("=",    (rg "1:4#1:5"));
+                         White (" ",    (rg "1:5#1:6"));
+                         Const ("bar",  (rg "1:6#1:9"));
+                         Const (";",    (rg "1:9#1:10"))],
+               (rg "1:0#1:10")))
+    (!"foo = bar;");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const  ("x",     (rg "1:0#1:1"));
+                         Var    (("1",0), (rg "1:1#1:5"))],
+               (rg "1:0#1:5")))
     (!"x:[1]");
 
   assert_equal
-    ~printer:Term.to_string
-    (Compound ("block",[Const "xy"; Var ("1",0)]))
+    ~printer:Term.to_string_with_loc
+    (Compound ("block", [Const  ("xy",    (rg "1:0#1:2"));
+                         Var    (("1",0), (rg "1:2#1:6"))],
+               (rg "1:0#1:6")))
     (!"xy:[1]");
 
   assert_raises
@@ -65,130 +145,123 @@ let test_parser _ =
     (fun () -> !":[_]:[_]:[_]")
 
 
+let test_strip _ =
+  assert_equal
+    ~printer:Term.to_string
+    (Compound ("block", [Const ("x", (mockrg)); Var (("1",0), (mockrg))], (mockrg)))
+    (Term.strip (!"x:[1]"))
 
-let make_env bindings =
-  List.fold bindings
-    ~init:(Environment.create ())
-    ~f:(fun env (v, term) -> Environment.add env (v,0) term)
-
-let env_of_result template source =
-  Option.value_exn (Match.find template source)
-
-let printer = Environment.to_string
 
 let test_match _ =
-  assert_equal
-    ~printer
+  assert_equiv
     (make_env [(("1"), !"foo")])
     (env_of_result !"x = :[1];" !"x = foo; x = bar;");
 
-  assert_equal
-    ~printer
+  assert_equiv
     (make_env [("1", !"a"); ("2", !"b")])
     (env_of_result !"x = :[1] + :[2];" !"x = a + b; x = c + d;");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"y")])
     (env_of_result !"(x(:[1]()))" !"(x(y()))");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"y()")])
     (env_of_result !"(:[1])" !"(y())");
 
-  assert_equal
-    ~printer:Environment.to_string
+  assert_equiv
     (make_env [("1", !"x = y")])
     (env_of_result !"{ :[1]; }" !"{ x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x"); ("2", !"y()")])
     (env_of_result !"(:[1](:[2]))" !"(x(y()))");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x"); ("2", !"y")])
     (env_of_result !"(:[1](:[2]()))" !"(x(y()))");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x"); ("2", !"y")])
     (env_of_result !"(:[1](:[2]()))" !"(x(y()))");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"(x(y()))")])
     (env_of_result !":[1]" !"(x(y()))");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x()x")])
     (env_of_result !":[1]" !"x()x");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"z()")])
     (env_of_result !"x(y(:[1]))" !"x(y(z()))");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()")])
     (env_of_result !"x:[1]x" !"x()x");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()")])
     (env_of_result !"x:[1]x" !"x()x");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"a,b,c"); ("2", !":")])
     (env_of_result !"x({(:[1])}:[2])x" !"x({(a,b,c)}:)x");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x"); ("2", !"y")])
     (env_of_result !":[1],:[2]" !"x,y");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"foo[0][1]")])
     (env_of_result !"x = :[1];" !"x = foo[0][1];");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"[0][1]")])
     (env_of_result !"x = foo:[1];" !"x = foo[0][1];");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"x"); ("2", !"y")])
     (env_of_result !"strcpy(:[1],:[2])" !"strcpy(x,y)");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"3"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > 3) { x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"f()"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()) { x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"f()")])
     (env_of_result !"if (x <= :[1] <= 10)" !"if (x <= f() <= 10)");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"f()()"); ("2", !"x = y")])
     (env_of_result !"if (x > :[1]) { :[2]; }" !"if (x > f()()) { x = y; }");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()()()()")])
     (env_of_result !"{:[1]}" !"{()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()")])
     (env_of_result !"{()()():[1]}" !"{()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()()")])
     (env_of_result !"{()()():[1]}" !"{()()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"()()()")])
     (env_of_result !"{():[1]}" !"{()()()()}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
     (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !".")])
     (env_of_result !"foo:[1]val = 100" !"foo.val = 100");
 
@@ -198,7 +271,7 @@ let test_match _ =
 
   (* string literals *)
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !{|"it is wednesday"|})])
     (env_of_result !":[1]" !{|"it is wednesday"|});
 
@@ -206,7 +279,7 @@ let test_match _ =
     (make_env [("1", !{|'it is wednesday'|})])
     (env_of_result !":[1]" !{|'it is wednesday'|});
 
-  assert_equal
+  assert_equiv
     (make_env [("1", !{|"lex"|})])
     (env_of_result !"!:[1]" !{|!"lex"|});
 
@@ -591,7 +664,7 @@ let test_printer _ =
 
   let env =
     let env = Environment.create () in
-    Environment.add env ("1",0) (Term.Const ":)") in
+    Environment.add env ("1",0) (Term.Const (":)", mockrg)) in
   let term =
     !":[1]"
     |> Environment.substitute env in
@@ -601,7 +674,7 @@ let test_printer _ =
 
   let env =
     let env = Environment.create () in
-    Environment.add env ("1",0) (Term.Const "dst") in
+    Environment.add env ("1",0) (Term.Const ("dst", mockrg)) in
   let term =
     !"strcpy(:[1],src)"
     |> Environment.substitute env in
@@ -611,7 +684,8 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
-      "test_parser" >:: test_parser
+      "test_location" >:: test_location
+    ; "test_parser" >:: test_parser
     ; "test_match" >:: test_match
     ; "test_end_to_end" >:: test_end_to_end
     ; "not_handled_tests" >:: not_handled_tests

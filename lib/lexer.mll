@@ -4,6 +4,21 @@ open Lexing
 open Parser
 
 exception SyntaxError of string
+
+let dump lexbuf =
+  let open Lexing in
+  let to_s pos = Location.to_string (Location.make pos) in
+  Printf.printf "Start, End: (%s, %s)\n" (to_s lexbuf.lex_start_p) (to_s lexbuf.lex_curr_p)
+
+let lshift_start lexbuf k =
+  lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - k;
+  lexbuf.lex_start_p <-
+    { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
+
+let lshift_curr lexbuf k =
+  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
+  lexbuf.lex_curr_p <-
+    { lexbuf.lex_curr_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
 }
 
 let newline = '\n' |'\r' | "\r\n"
@@ -46,14 +61,22 @@ rule read = parse
 
 (* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | ' ' | '\t' | newline | separators | '\'' | '"'
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | white | newline | separators | '\'' | '"' | eof
 {
   let k = String.length (Lexing.lexeme lexbuf) in
-  lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
+  lshift_curr lexbuf k;
+  lshift_start lexbuf (Buffer.length buf);
   CONST (Buffer.contents buf)
 }
-| _ as c  { Buffer.add_char buf c; read_const buf lexbuf }
-| eof     { CONST (Buffer.contents buf) }
+| eof
+{
+  lshift_start lexbuf ((Buffer.length buf) - 1);
+  CONST (Buffer.contents buf)
+}
+| _ as c  {
+  Buffer.add_char buf c;
+  read_const buf lexbuf
+}
 
 and read_string_literal_double buf = parse
 | '"'      { CONST (Buffer.contents buf) }

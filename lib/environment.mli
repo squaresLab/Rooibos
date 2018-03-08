@@ -27,4 +27,8 @@ val lookup : t -> variable -> Term.t
     unification. *)
 val substitute : t -> Term.t -> Term.t
 
+(** [strip env] returns a copy of a given environment with its location
+ *  data replaced with mock data. *)
+val strip : t -> t
+
 val to_string : t -> string

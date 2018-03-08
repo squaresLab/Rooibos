@@ -25,28 +25,41 @@
 %%
 
 main:
-| EOF            { Const "" }
-| terms EOF      { $1 }
+| EOF
+  { Const ("", (Location.Range.make $startpos $endpos)) }
+| terms EOF { $1 }
 
 terms:
-| term           { $1 }
-| term_list      { Compound ("block", $1) }
+| term { $1 }
+| term_list
+  { Compound ("block", $1, (Location.Range.make $startpos $endpos)) }
 
 term_list:
-| term           { [$1] }
+| term { [$1] }
 | term term_list { $1 :: $2 }
 
 term:
-| LEFT_BRACKET     terms? RIGHT_BRACKET     { Compound ("square", to_list $2) }
-| LEFT_BRACE       terms? RIGHT_BRACE       { Compound ("curly",  to_list $2) }
-| LEFT_ANGLE       terms? RIGHT_ANGLE       { Compound ("angle",  to_list $2) }
-| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS { Compound ("round",  to_list $2) }
-| literal                                   { $1 }
+| LEFT_BRACKET terms? RIGHT_BRACKET
+  { Compound ("square", to_list $2, (Location.Range.make $startpos $endpos($3))) }
+| LEFT_BRACE terms? RIGHT_BRACE
+  { Compound ("curly", to_list $2, (Location.Range.make $startpos $endpos($3))) }
+| LEFT_ANGLE terms? RIGHT_ANGLE
+  { Compound ("angle", to_list $2, (Location.Range.make $startpos $endpos($3))) }
+| LEFT_PARENTHESIS terms? RIGHT_PARENTHESIS
+  { Compound ("round", to_list $2, (Location.Range.make $startpos $endpos($3))) }
+| literal
+  { $1 }
 
 literal:
-| SEPARATOR { Const $1 }
-| LINE_BREAK { Break }
-| CONST     { Const $1 }
-| HOLE      { Var ($1, 0) }
-| WHITESPACE { White $1 }
-| HOLE HOLE { raise (ParseError ("Please, no consecutive holes allowed")) }
+| SEPARATOR
+  { Const ($1, (Location.Range.make $startpos $endpos)) }
+| LINE_BREAK
+  { Break (Location.Range.make $startpos $endpos) }
+| CONST
+  { Const ($1, (Location.Range.make $startpos $endpos)) }
+| HOLE
+  { Var (($1, 0), (Location.Range.make $startpos $endpos)) }
+| WHITESPACE
+  { White ($1, (Location.Range.make $startpos $endpos)) }
+| HOLE HOLE
+  { raise (ParseError ("Please, no consecutive holes allowed")) }

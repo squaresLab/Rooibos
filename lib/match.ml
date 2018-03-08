@@ -6,74 +6,87 @@ type t = Environment.t
 
 exception NoMatch
 
-let loc =
-  let open Location in
-  { Range.start_ = { line = 0; column = 0 }
-  ; Range.end_ = { line = 0; column = 0 }
-  }
-
+let terms_to_s terms =
+  let compound = Compound ("block", terms, Location.Range.unknown) in
+    Term.to_string compound
 
 (** Helper function to add a single term to a Var during matching *)
 let add_term env v term =
+  let open Location.Range in
+  let { stop = loc_stop; _ } = Term.range term in
+  let term' =
   match Environment.lookup env v with
-  | Compound ("block", existing_terms) ->
-    (* Var is a block, so append the new term *)
-    let matches = Compound ("block", existing_terms @ [term]) in
-    Environment.add env v matches
-  | Var _ ->
-    (* Var does not exist, so add a term and continue *)
-    Environment.add env v term
-  (* var has only been matched with one term, extend it to be a compound. and
-     continue *)
+  (* Var is a block, so append the new term *)
+  | Compound ("block", existing_terms, { start = loc_start; _ }) ->
+    let loc = Location.Range.create loc_start loc_stop in
+    Compound ("block", existing_terms @ [term], loc)
+
+  (* Var does not exist, so add a term and continue *)
+  | Var _ -> term
+
+  (* var has only been matched with one term; construct a block from the given
+   * term and the existing term. *)
   | existing_term ->
-    let matches = Compound ("block", existing_term::[term]) in
-    Environment.add env v matches
+    let { start = loc_start ; _ } = Term.range existing_term in
+    let loc = Location.Range.create loc_start loc_stop in
+    Compound ("block", existing_term::[term], loc)
+  in
+    Environment.add env v term'
 
-
-(** Helper function to add a multiple terms to a Var during matching *)
+(** Helper function to add multiple terms to a Var during matching *)
 let add_terms env v terms =
+  let open Location.Range in
+  let terms' =
   match Environment.lookup env v with
-  | Compound ("block", existing_terms) ->
-    (* Var is a block, so append the term with hole and stop *)
-    let matches = Compound ("block", existing_terms @ terms) in
-    Environment.add env v matches
-  | Var _ ->
-    (* Var does not exist, so add a block term and stop *)
-    let term = Compound ("block", terms) in
-    Environment.add env v term
-  (* var has only been matched with one term, extend it to be a
+  | Compound ("block", existing_terms, _) -> existing_terms @ terms
+
+  (* Var does not exist, so add a block term and stop *)
+  | Var _ -> terms
+
+  (* var has only been matched with one term; extend it to be a
      compound. and continue *)
-  | existing_term ->
-    let matches = Compound ("block", existing_term::terms) in
-    Environment.add env v matches
+  | existing_term -> existing_term::terms
+  in
+
+  let location =
+  match terms', (List.rev terms') with
+  | (start::_, stop::_) ->
+    let { start = start_loc ; _ } = Term.range start in
+    let { stop = stop_loc ; _ } = Term.range stop in
+      Location.Range.create start_loc stop_loc
+  | _ -> raise NoMatch
+  in
+  let term' = Compound ("block", terms', location) in
+    Environment.add env v term'
 
 let rec skip_until_not_white = function
   | White _::tl -> skip_until_not_white tl
   | x -> x
 
 
-let rec find_aux env template source : (Environment.t * Location.Range.t) =
+let rec find_aux env template source : Environment.t =
   match template, source with
-  | Const c1, Const c2 when c1 = c2 -> env, loc
-  | White _, White _ -> env, loc
-  | Break, Break -> env, loc
-  | Compound ("block", lhs), Compound ("block", rhs) ->
+  | Const (c1, _), Const (c2, _) when c1 = c2 -> env
+  | White _, White _ -> env
+  | Break _, Break _ -> env
+  | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
     find_list env lhs rhs
-  | Compound (c1, [b1]), Compound(c2, [b2]) when c1 = c2 ->
-    let env, _ = find_aux env b1 b2 in
-    env, loc
-  | Var v, term ->
-    (Environment.add env v term), loc
+  | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
+    find_aux env b1 b2
+  | Var (v, _), term ->
+    Environment.add env v term
   | _, _ ->
     raise NoMatch
 
 and find_list env lhs rhs =
-  (* Format.printf "Matching Sz %d %s@.\
-                 With     Sz %d %s@.@."
-    (List.length lhs)
-    (Term.to_string (Compound ("debug", lhs)))
-    (List.length rhs)
-    (Term.to_string (Compound ("debug", rhs))); *)
+  (*
+   Format.printf "Matching Sz %d %s@.\
+               With     Sz %d %s@.@."
+  (List.length lhs)
+  (terms_to_s lhs)
+  (List.length rhs)
+  (terms_to_s rhs);
+  *)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -88,40 +101,40 @@ and find_list env lhs rhs =
   | lhs, White _::rhs_tl ->
     find_list env lhs rhs_tl
 
-  | Break::lhs_tl, Break::rhs_tl ->
+  | (Break _)::lhs_tl, (Break _)::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
-  | Const c1::lhs_tl, Const c2::rhs_tl when c1 = c2 ->
+  | (Const (c1, _))::lhs_tl, (Const (c2, _))::rhs_tl when c1 = c2 ->
     find_list env lhs_tl rhs_tl
 
   (* Identify start of matching, Part 1: when it is a const before hole *)
-  | Const c1::(Var v::lhs_tl as lhs_continue_match),
-    Const c2::rhs_tl
+  | (Const (c1, _))::((Var (v, _))::lhs_tl as lhs_continue_match),
+    (Const (c2, _))::rhs_tl
 
   (* Identify start of matching, Part 2: when there is whitespace between cons
      and hole *)
-  | Const c1::White _::(Var v::lhs_tl as lhs_continue_match),
-    Const c2::rhs_tl
+  | (Const (c1, _))::White _::((Var (v, _))::lhs_tl as lhs_continue_match),
+    (Const (c2, _))::rhs_tl
 
     when c1 = c2 ->
     begin match skip_until_not_white rhs_tl with
       | start::rhs_tl ->
         let env = Environment.add env v start in
         find_list env lhs_continue_match rhs_tl
-      | [] -> env, loc (* Var associates with nothing, end of the list *)
+      | [] -> env (* Var associates with nothing, end of the list *)
     end
 
-  | Var v::suffix::rest as lhs_continue_match,
+  | (Var (v, loc_var))::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
     begin match suffix, term with
       (* Stop matching against this var, we matched a suffix. we are done. we
          also processed everything inside suffix, so we are done there too. *)
-      | Compound (c1, terms_lhs), Compound (c2, terms_rhs)
+      | Compound (c1, terms_lhs, _), Compound (c2, terms_rhs, _)
         when c1 = c2 ->
-        let env,_ = find_list env terms_lhs terms_rhs in (* XXX loc *)
+        let env = find_list env terms_lhs terms_rhs in
         find_list env rest rhs_tl
       (* we are done with this var, and suffix. continue with the rest *)
-      | Const c1, Const c2 when c1 = c2 ->
+      | Const (c1, _), Const (c2, _) when c1 = c2 ->
         find_list env rest rhs_tl
       (* if suffix is whitespace, we need to trim it and continue and try again.
          we know that we will hit some sort of suffix later. therefore it is ok
@@ -131,7 +144,7 @@ and find_list env lhs rhs =
          we skip. I.e., term may be white space here, and we keep it. *)
       | White _, term ->
         let env = add_term env v term in
-        find_list env (Var v::rest) rhs_tl
+        find_list env (Var (v, loc_var)::rest) rhs_tl
       (* else, not equal, then add term (including whitespace, if any) and continue *)
       | _, term ->
         begin match rhs_tl with
@@ -142,15 +155,13 @@ and find_list env lhs rhs =
             begin match rhs_tl with
               (* don't add whitespace if next token is suffix, and we're at the
                  end *)
-              | hd::_ when hd = suffix ->
+              | hd::_ when Term.equivalent hd suffix ->
                 let env = add_term env v term in
-                (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
               (* add the term and the 'next' white space since it is not suffix *)
               | _ ->
                 let env = add_term env v term in
                 let env = add_term env v next in
-                (* XXX fix up loc in add_term *)
                 find_list env lhs_continue_match rhs_tl
             end
           (* if other next term, add this term and continue. other will be
@@ -165,29 +176,27 @@ and find_list env lhs rhs =
   (* We kept consuming and adding terms to var's list, and reached the end of
      source. Just return env *)
   | [Var _], [] ->
-    env, loc
+    env
 
-  | [Var v], [term] ->
-    let env = add_term env v term in (* XXX fix up loc *)
-    env, loc
+  | [Var (v, _)], [term] ->
+    add_term env v term
 
-  | [Var v], last_terms ->
-    let env = add_terms env v last_terms in
-    env, loc (* XXX fix up loc *)
+  | [Var (v, _)], last_terms ->
+    add_terms env v last_terms
 
-  | Compound ("block", lhs)::lhs_tl, Compound ("block", rhs)::rhs_tl ->
-    let env,_ = find_list env lhs rhs in (* XXX take care of loc *)
+  | Compound ("block", lhs, _)::lhs_tl, Compound ("block", rhs, _)::rhs_tl ->
+    let env = find_list env lhs rhs in
     find_list env lhs_tl rhs_tl
 
-  | Compound (c1, [b1])::lhs_tl, Compound (c2, [b2])::rhs_tl ->
-    let env,_ = find_aux env b1 b2 in (* XXX take care of loc *)
+  | Compound (c1, [b1], _)::lhs_tl, Compound (c2, [b2], _)::rhs_tl ->
+    let env = find_aux env b1 b2 in
     find_list env lhs_tl rhs_tl
 
-  | Compound (c1, [])::lhs_tl, Compound (c2, [])::rhs_tl ->
+  | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
   | [], _ ->
-    env, loc
+    env
 
   | _, _ ->
     raise NoMatch
@@ -195,28 +204,35 @@ and find_list env lhs rhs =
 
 let find template source =
   let env = Environment.create () in
-  try Some (find_aux env template source |> fst)
+  try Some (find_aux env template source)
   with _ -> None
 
 
 (** shift a source by n. n only comes into play for blocks AKA lists *)
 let rec shift_source n source : Term.t option =
+  let open Location.Range in
   assert (n > 0);
   match source with
-  | Compound (c, terms)
+  | Compound (c, terms, { start = loc_start ; _ })
     when c = "block" && (List.length terms > 0) ->
     let terms = List.drop terms n in
-    Some (Compound (c, terms))
+    let loc = begin match List.rev terms with
+      | [] -> Location.Range.unknown (* TODO ewww *)
+      | last_term::_ ->
+        let { stop = loc_stop; _ } = Term.range last_term in
+          Location.Range.create loc_start loc_stop
+    end in
+      Some (Compound (c, terms, loc))
   | _ -> None
 
 
 let rec bust_out_compounds source : Term.t list =
   match source with
-  | Compound ("block", terms) ->
+  | Compound ("block", terms, _) ->
     List.filter terms
-      ~f:(function | Compound (c, _) when c <> "block" -> true | _ -> false)
+      ~f:(function | Compound (c, _, _) when c <> "block" -> true | _ -> false)
   (* non-block compounds are always just one element of type block. FIXME #36 *)
-  | Compound (c, [terms]) ->
+  | Compound (c, [terms], _) ->
     bust_out_compounds terms
   | _ -> []
 
@@ -224,7 +240,7 @@ let rec bust_out_compounds source : Term.t list =
 (** A way to find the size of the term for advancing *)
 let size (term : Term.t) =
   match term with
-  | Compound ("block", terms) -> List.length terms
+  | Compound ("block", terms, _) -> List.length terms
   | _ -> 1
 
 
@@ -240,7 +256,7 @@ let rec find_shift acc template source =
     | None -> acc
   in
   try
-    let env, _ = find_aux (Environment.create ()) template source in
+    let env = find_aux (Environment.create ()) template source in
     let acc = env::acc in
     let var = Environment.vars env |> List.hd_exn in
     let term = Environment.lookup env var in
@@ -258,13 +274,13 @@ let rec find_shift acc template source =
 let all template source =
   let rec aux acc template source =
     match source with
-    | Compound ("block", terms) as this_level ->
+    | Compound ("block", terms, _) as this_level ->
       let acc = find_shift acc template source in
       let compounds = bust_out_compounds this_level in
       List.fold
         ~init:acc ~f:(fun acc term -> (aux acc template term))
         compounds
-    | Compound (c, [block]) -> aux acc template block
+    | Compound (c, [block], _) -> aux acc template block
     | _ -> acc
   in
   Sequence.of_list (aux [] template source)
