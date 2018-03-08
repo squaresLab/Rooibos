@@ -17,6 +17,9 @@ let from_file_exn fn = Fn.compose to_term In_channel.read_all
 
 let () =
   match Array.to_list Sys.argv with
+  | _ :: "parse" :: str :: _ ->
+    let term = to_term str in
+      Format.printf "%s\n" (Term.to_string term)
   | _ :: "-i" :: template :: source :: rewrite_template :: _ ->
     begin match
         Match.all (to_term template) (to_term source)
