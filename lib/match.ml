@@ -6,6 +6,10 @@ type t = Environment.t
 
 exception NoMatch
 
+let terms_to_s terms =
+  let compound = Compound ("block", terms, Location.Range.unknown) in
+    Term.to_string compound
+
 (** Helper function to add a single term to a Var during matching *)
 let add_term env v term =
   let open Location.Range in
@@ -75,12 +79,14 @@ let rec find_aux env template source : Environment.t =
     raise NoMatch
 
 and find_list env lhs rhs =
-  (* Format.printf "Matching Sz %d %s@.\
-                 With     Sz %d %s@.@."
-    (List.length lhs)
-    (Term.to_string (Compound ("debug", lhs)))
-    (List.length rhs)
-    (Term.to_string (Compound ("debug", rhs))); *)
+  (*
+   Format.printf "Matching Sz %d %s@.\
+               With     Sz %d %s@.@."
+  (List.length lhs)
+  (terms_to_s lhs)
+  (List.length rhs)
+  (terms_to_s rhs);
+  *)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -118,7 +124,7 @@ and find_list env lhs rhs =
       | [] -> env (* Var associates with nothing, end of the list *)
     end
 
-  | (Var (v, _))::suffix::rest as lhs_continue_match,
+  | (Var (v, loc_var))::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
     begin match suffix, term with
       (* Stop matching against this var, we matched a suffix. we are done. we
@@ -138,7 +144,7 @@ and find_list env lhs rhs =
          we skip. I.e., term may be white space here, and we keep it. *)
       | White _, term ->
         let env = add_term env v term in
-        find_list env (Var (v, Location.Range.unknown)::rest) rhs_tl (* TODO: this is a bit weird *)
+        find_list env (Var (v, loc_var)::rest) rhs_tl
       (* else, not equal, then add term (including whitespace, if any) and continue *)
       | _, term ->
         begin match rhs_tl with
@@ -149,7 +155,7 @@ and find_list env lhs rhs =
             begin match rhs_tl with
               (* don't add whitespace if next token is suffix, and we're at the
                  end *)
-              | hd::_ when hd = suffix ->
+              | hd::_ when Term.equivalent hd suffix ->
                 let env = add_term env v term in
                 find_list env lhs_continue_match rhs_tl
               (* add the term and the 'next' white space since it is not suffix *)
