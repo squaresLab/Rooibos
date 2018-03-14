@@ -9,7 +9,7 @@ exception SyntaxError of string
 let newline = '\n' |'\r' | "\r\n"
 let white = [' ' '\t']+
 let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
-let separators = ',' | ';' | ':' | '.' | '-' '>'
+let separators = ',' | ';' | ':' | '.' | '-' '>' | '*'
 
 rule read = parse
 
