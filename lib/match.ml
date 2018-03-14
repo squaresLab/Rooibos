@@ -49,6 +49,8 @@ let add_terms env v terms =
 
 let rec skip_until_not_white = function
   | White _::tl -> skip_until_not_white tl
+  | Const "\n"::tl -> skip_until_not_white tl
+  | Const "\r\n"::tl -> skip_until_not_white tl
   | x -> x
 
 

@@ -15,16 +15,15 @@ let to_term s =
 
 let () =
   match Array.to_list Sys.argv with
-  | _ :: "-i" :: template :: source :: rewrite_template :: _ ->
-    begin match
-        Match.all (to_term template) (to_term source)
-        |> Sequence.to_list
-      with
-      | env::_ ->
-        (* Format.printf "Match: %s@." (Environment.to_string env); *)
-        let rewritten = Environment.substitute env (to_term rewrite_template) in
-        Format.printf "%s" (Printer.to_string rewritten)
-      | [] -> failwith "No match"
+  | _ :: "-i" :: template :: source :: rewrite_template :: [] ->
+    begin
+      Format.printf "SOURCE: %s@." source;
+      Match.find (to_term template) (to_term source)
+      |> fun env ->
+      let env = Option.value_exn env in
+      (* Format.printf "Match: %s@." (Environment.to_string env); *)
+      let rewritten = Environment.substitute env (to_term rewrite_template) in
+      Format.printf "%s" (Printer.to_string rewritten)
     end
   | _ :: template :: source :: rewrite_template :: _ ->
     let template = In_channel.read_all template in
