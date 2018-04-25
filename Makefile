@@ -20,11 +20,11 @@ docker-build:
 	docker build -t squareslab/rooibos .
 	docker run --rm -it squareslab/rooibos make test
 
-docker-upload:
+docker-push:
 	docker push squareslab/rooibos
 
 example:
 	@rooibos examples/complex-if-example/template examples/complex-if-example/source examples/complex-if-example/rewrite-template
 	@rooibos examples/large/template examples/large/seahorn.c examples/large/rewrite
 
-.PHONY: all install test clean uninstall example
+.PHONY: all install test clean uninstall example docker-build docker-push
