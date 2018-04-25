@@ -17,8 +17,8 @@ uninstall:
 	@jbuilder uninstall
 
 docker-build:
-	docker build -t rooibos .
-	docker run --rm -it rooibos make test
+	docker build -t squareslab/rooibos .
+	docker run --rm -it squareslab/rooibos make test
 
 example:
 	@rooibos examples/complex-if-example/template examples/complex-if-example/source examples/complex-if-example/rewrite-template
