@@ -12,4 +12,4 @@ COPY lib /tmp/rooibos/lib
 
 RUN sudo chown -R $(whoami) . \
  && eval $(opam config env) \
- && opam pin add -y rooibos . \
+ && opam pin add -y rooibos .
