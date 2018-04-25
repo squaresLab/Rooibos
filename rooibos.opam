@@ -1,8 +1,8 @@
 opam-version: "1.2"
 version: "0.1"
-mainter: "squaresLab@gmail.com"
-authors: ["rvt" "cth"]
-hompeage: "https://github.com/squaresLab/Rooibos"
+maintainer: "squaresLab@gmail.com"
+authors: ["rvt" "cst"]
+homepage: "https://github.com/squaresLab/Rooibos"
 bug-reports: "https://github.com/squaresLab/Rooibos/issues"
 dev-repo: "https://github.com/squaresLab/Rooibos.git"
 license: "Apache-2.0"

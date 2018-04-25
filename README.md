@@ -1,5 +1,7 @@
 # Rooibos
 
+[![Build Status](https://travis-ci.com/squaresLab/Rooibos.svg?token=NEepgzkwf1KGUTphtdZ4&branch=master)](https://travis-ci.com/squaresLab/Rooibos)
+
 ## Match Semantics
 
 #### Exact Matches (`Match.find`)
