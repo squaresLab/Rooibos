@@ -6,6 +6,9 @@ type t = Location.Range.t * Environment.t
 
 exception NoMatch
 
+let range (rng, _) = rng
+let environment (_, env) = env
+
 let terms_to_s terms =
   let compound = Compound ("block", terms, Location.Range.unknown) in
     Term.to_string compound
