@@ -1,2 +1,7 @@
-_build
-*.swp
+**
+!src
+!lib
+!examples
+!test
+!rooibos.opam
+!Makefile

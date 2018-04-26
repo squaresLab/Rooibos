@@ -40,7 +40,7 @@ fi
 opam init -y --compiler="${OCAML_VERSION}" && \
 opam update && \
 eval `opam config env` && \
-opam install ounit && \
+opam install -y ounit && \
 opam lint rooibos.opam && \
 save_opam_cache && \
 opam pin add -y rooibos . && \
