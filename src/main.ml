@@ -25,7 +25,7 @@ let () =
         Match.all (to_term template) (to_term source)
         |> Sequence.to_list
       with
-      | env::_ ->
+      | (_, env)::_ ->
         (* Format.printf "Match: %s@." (Environment.to_string env); *)
         let rewritten = Environment.substitute env (to_term rewrite_template) in
         Format.printf "%s" (Printer.to_string rewritten)
@@ -39,7 +39,7 @@ let () =
         Match.all (to_term template) (to_term source)
         |> Sequence.to_list
       with
-      | env::_ ->
+      | (_, env)::_ ->
         (* Format.printf "Match: %s@." (Environment.to_string env); *)
         let rewritten = Environment.substitute env (to_term rewrite_template) in
         Format.printf "%s" (Printer.to_string rewritten)

@@ -2,7 +2,7 @@ open Core
 
 open Term
 
-type t = Environment.t
+type t = Location.Range.t * Environment.t
 
 exception NoMatch
 
@@ -64,17 +64,20 @@ let rec skip_until_not_white = function
   | x -> x
 
 
-let rec find_aux env template source : Environment.t =
+let rec find_aux env template source : t =
+  let range_mock = Location.Range.unknown in
+  let range_source = Term.range source in
   match template, source with
-  | Const (c1, _), Const (c2, _) when c1 = c2 -> env
-  | White _, White _ -> env
-  | Break _, Break _ -> env
+  | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
+  | White _, White _ -> range_source, env
+  | Break _, Break _ -> range_source, env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
-    find_list env lhs rhs
+    range_mock, (find_list env lhs rhs)
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
-    find_aux env b1 b2
+    let _, env = find_aux env b1 b2 in
+    range_source, env
   | Var (v, _), term ->
-    Environment.add env v term
+    range_source, (Environment.add env v term)
   | _, _ ->
     raise NoMatch
 
@@ -189,7 +192,7 @@ and find_list env lhs rhs =
     find_list env lhs_tl rhs_tl
 
   | Compound (c1, [b1], _)::lhs_tl, Compound (c2, [b2], _)::rhs_tl ->
-    let env = find_aux env b1 b2 in
+    let _, env = find_aux env b1 b2 in
     find_list env lhs_tl rhs_tl
 
   | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
@@ -256,8 +259,9 @@ let rec find_shift acc template source =
     | None -> acc
   in
   try
-    let env = find_aux (Environment.create ()) template source in
-    let acc = env::acc in
+    let mtch = find_aux (Environment.create ()) template source in
+    let _, env = mtch in
+    let acc = mtch::acc in
     let var = Environment.vars env |> List.hd_exn in
     let term = Environment.lookup env var in
     let n = size term in

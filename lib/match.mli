@@ -1,6 +1,6 @@
 open Core
 
-type t = Environment.t
+type t = Location.Range.t * Environment.t
 
 (** [all template src] finds all matches of a template [template] in a given
    source code [src]. *)
