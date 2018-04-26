@@ -68,14 +68,13 @@ let rec skip_until_not_white = function
 
 
 let rec find_aux env template source : t =
-  let range_mock = Location.Range.unknown in
   let range_source = Term.range source in
   match template, source with
   | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
   | White _, White _ -> range_source, env
   | Break _, Break _ -> range_source, env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
-    range_mock, (find_list env lhs rhs)
+    range_source, (find_list env lhs rhs)
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
     let _, env = find_aux env b1 b2 in
     range_source, env
