@@ -55,7 +55,8 @@ let make_env bindings =
     ~f:(fun env (v, term) -> Environment.add env (v,0) term)
 
 let env_of_result template source =
-  Option.value_exn (Match.find template source)
+  let _, env = Option.value_exn (Match.find template source) in
+  env
 
 let printer = Environment.to_string
 
@@ -314,9 +315,8 @@ let test_match _ =
 
 let test_end_to_end _ =
   let rewrite template source rewrite_template =
-    Option.value_exn (Match.find !template !source)
-    |> Fn.flip Environment.substitute !rewrite_template
-    |> Printer.to_string
+    let _, env = Option.value_exn (Match.find !template !source) in
+    Printer.to_string @@ Environment.substitute env !rewrite_template
   in
 
   let template =
@@ -388,6 +388,7 @@ let test_end_to_end _ =
 let test_all_match _ =
   let rewrite template source rewrite_template =
     Match.all !template !source
+    |> Sequence.map ~f:Match.environment
     |> Sequence.map ~f:(Fn.flip Environment.substitute !rewrite_template)
     |> Sequence.map ~f:Printer.to_string
     |> Sequence.to_list
