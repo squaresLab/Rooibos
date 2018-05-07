@@ -85,6 +85,23 @@ let test_comments _ =
   assert_equal
     ~printer:Term.to_string_with_loc
     (Compound ("block",
+               [ Comment ("/* hello */", mockrg)
+               ; White (" ", mockrg)
+               ; Const ("x", mockrg)
+               ; White (" ", mockrg)
+               ; Const ("=", mockrg)
+               ; White (" ", mockrg)
+               ; Const ("y", mockrg)
+               ; Const (";", mockrg)
+               ; White (" ", mockrg)
+               ; Comment ("/* world */", mockrg)
+               ],
+               mockrg))
+    (!"/* hello */ x = y; /* world */");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
                [ Comment ("// cool", mockrg)
                ; Break mockrg
                ; Const ("x", mockrg)
