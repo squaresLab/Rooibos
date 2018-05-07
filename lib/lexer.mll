@@ -82,7 +82,7 @@ and read_string_literal_double buf = parse
 | '"' {
 
   let s = Format.sprintf "\"%s\"" (Buffer.contents buf) in
-  lshift_start lexbuf ((String.length s) - 1);
+  lshift_start lexbuf (String.length s);
   CONST s
 }
 | [^ '"']+ {
@@ -101,7 +101,7 @@ and read_string_literal_double buf = parse
 and read_string_literal_single buf = parse
 | '\'' {
   let s = Format.sprintf "'%s'" (Buffer.contents buf) in
-  lshift_start lexbuf ((String.length s) - 1);
+  lshift_start lexbuf (String.length s);
   CONST s
 }
 | [^ '\'']+ {
