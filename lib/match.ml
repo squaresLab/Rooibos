@@ -71,6 +71,7 @@ let rec find_aux env template source : t =
   let range_source = Term.range source in
   match template, source with
   | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
+  | Comment (c1, _), Comment (c2, _) when c1 = c2 -> range_source, env
   | White _, White _ -> range_source, env
   | Break _, Break _ -> range_source, env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
