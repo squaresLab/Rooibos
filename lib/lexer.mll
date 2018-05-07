@@ -48,11 +48,8 @@ rule read = parse
   HOLE name
 }
 | white { WHITESPACE (Lexing.lexeme lexbuf) }
-| "//" { (* FIXME can be simplified as regex? *)
-  let buf = Buffer.create 80 in
-  Buffer.add_string buf "//";
-  read_singleline_comment buf lexbuf
-}
+| "//" { read_singleline_comment (Buffer.create 80) lexbuf }
+| "/*" { read_multiline_comment (Buffer.create 80) lexbuf }
 | '"'   { read_string_literal_double (Buffer.create 17) lexbuf }
 | '\''  { read_string_literal_single (Buffer.create 17) lexbuf }
 | _ as c
@@ -65,14 +62,26 @@ rule read = parse
 
 and read_singleline_comment buf = parse
 | newline | eof as c {
-  let k = String.length c in
-  lshift_curr lexbuf k;
-  lshift_start lexbuf (Buffer.length buf);
-  SINGLELINE_COMMENT (Buffer.contents buf)
+  let s = "//" ^ (Buffer.contents buf) in
+  lshift_curr lexbuf (String.length c);
+  lshift_start lexbuf (String.length s);
+  SINGLELINE_COMMENT s
 }
 | _ as c {
   Buffer.add_char buf c;
   read_singleline_comment buf lexbuf
+}
+
+and read_multiline_comment buf = parse
+| "*/" {
+  let s = "/*" ^ (Buffer.contents buf) ^ "*/" in
+  lshift_start lexbuf (String.length s);
+  MULTILINE_COMMENT s
+}
+| eof { failwith "Multi-line comment is not terminated" }
+| _ as c {
+  Buffer.add_char buf c;
+  read_multiline_comment buf lexbuf
 }
 
 (* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
