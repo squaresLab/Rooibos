@@ -58,6 +58,10 @@ let env_of_result template source =
   let _, env = Option.value_exn (Match.find template source) in
   env
 
+let loc_of_result template source : Location.Range.t =
+  let loc, _ = Option.value_exn (Match.find template source) in
+  loc
+
 let printer = Environment.to_string
 
 let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
@@ -163,6 +167,12 @@ let test_match _ =
   assert_equiv
     (make_env [(("1"), !"\"hello world!\"")])
     (env_of_result !"print(:[1]);" !"print(\"hello world!\");");
+
+  (* BUG #53 *)
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:2#1:3")
+    (loc_of_result !">" !"x > y");
 
   assert_equiv
     (make_env [(("1"), !"foo")])
