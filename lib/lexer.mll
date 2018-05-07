@@ -79,27 +79,39 @@ and read_const buf = parse
 }
 
 and read_string_literal_double buf = parse
-| '"'      { CONST (Buffer.contents buf) }
-| [^ '"']+
-  { Buffer.add_string buf (Lexing.lexeme lexbuf);
-    read_string_literal_double buf lexbuf
-  }
-| eof  { failwith "String is not terminated" }
-| _    {
-  let pos = lexbuf.lex_curr_p in
-  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
-    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
-  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos) }
+| '"' {
 
-and read_string_literal_single buf = parse
-| '\''      { CONST (Buffer.contents buf) }
-| [^ '\'']+
-  { Buffer.add_string buf (Lexing.lexeme lexbuf);
-    read_string_literal_single buf lexbuf
-  }
-| eof  { failwith "String is not terminated" }
-| _    {
+  let s = Format.sprintf "\"%s\"" (Buffer.contents buf) in
+  lshift_start lexbuf ((String.length s) - 1);
+  CONST s
+}
+| [^ '"']+ {
+  Buffer.add_string buf (Lexing.lexeme lexbuf);
+  read_string_literal_double buf lexbuf
+}
+| eof { failwith "String is not terminated" }
+| _ {
   let pos = lexbuf.lex_curr_p in
   let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
-  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos) }
+  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos)
+}
+
+(* FIXME 99% copypasto *)
+and read_string_literal_single buf = parse
+| '\'' {
+  let s = Format.sprintf "'%s'" (Buffer.contents buf) in
+  lshift_start lexbuf ((String.length s) - 1);
+  CONST s
+}
+| [^ '\'']+ {
+  Buffer.add_string buf (Lexing.lexeme lexbuf);
+  read_string_literal_single buf lexbuf
+}
+| eof { failwith "String is not terminated" }
+| _  {
+  let pos = lexbuf.lex_curr_p in
+  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
+    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
+  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos)
+}
