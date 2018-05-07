@@ -14,6 +14,7 @@
 %token <string> CONST
 %token <string> HOLE
 %token <string> SINGLELINE_COMMENT
+%token <string> MULTILINE_COMMENT
 %token LEFT_BRACKET RIGHT_BRACKET
 %token LEFT_BRACE RIGHT_BRACE
 %token LEFT_ANGLE RIGHT_ANGLE
@@ -59,6 +60,8 @@ literal:
 | CONST
   { Const ($1, (Location.Range.make $startpos $endpos)) }
 | SINGLELINE_COMMENT
+  { Comment ($1, (Location.Range.make $startpos $endpos)) }
+| MULTILINE_COMMENT
   { Comment ($1, (Location.Range.make $startpos $endpos)) }
 | HOLE
   { Var (($1, 0), (Location.Range.make $startpos $endpos)) }
