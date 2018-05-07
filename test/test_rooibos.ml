@@ -65,6 +65,34 @@ let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
     assert_equal ~printer e1 e2
 
 
+let test_single_line_comments _ =
+  let (!!) s = !s in
+  let (!) s = !!s |> Term.strip in
+
+  !"// hello" |> ignore;
+  !"// hello/n//how are you today?" |> ignore;
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Comment ("// hello", mockrg))
+    (!"// hello");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+               [ Comment ("// cool", mockrg)
+               ; Break mockrg
+               ; Const ("x", mockrg)
+               ; White (" ", mockrg)
+               ; Const ("=", mockrg)
+               ; White (" ", mockrg)
+               ; Const ("y", mockrg)
+               ; Const (";", mockrg)
+               ; Break mockrg
+               ; Comment ("// commento", mockrg)],
+               mockrg))
+    (!"// cool\nx = y;\n// commento")
+
 let test_location _ =
   (* TODO: we can't test multi-line strings *)
   (*
@@ -701,6 +729,7 @@ let test_printer _ =
   let suite =
     "test" >::: [
       "test_location" >:: test_location
+    ; "test_single_line_comments" >:: test_single_line_comments
     ; "test_parser" >:: test_parser
     ; "test_match" >:: test_match
     ; "test_end_to_end" >:: test_end_to_end

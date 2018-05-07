@@ -7,6 +7,7 @@ type variable = string * int
 type t =
   | Break of Location.Range.t
   | White of constant * Location.Range.t
+  | Comment of constant * Location.Range.t
   | Var of variable * Location.Range.t
   | Const of constant * Location.Range.t
   | Compound of constant * t list * Location.Range.t
@@ -16,6 +17,7 @@ let rec contains term variable =
   | Var (y, _) -> variable = y
   | Compound (_, ts, _) ->
     List.exists ~f:(fun term -> contains term variable) ts
+  | Comment _
   | Const _
   | White _
   | Break _ -> false
@@ -23,6 +25,7 @@ let rec contains term variable =
 let rec equivalent x y =
   match x, y with
   | Break _, Break _ -> true
+  | Comment (cx, _), Comment (cy, _) when cx = cy -> true
   | White (wx, _), White (wy, _) when wx = wy -> true
   | Const (cx, _), Const (cy, _) when cx = cy -> true
   | Var (vx, _), Var (vy, _) when vx = vy -> true
@@ -39,6 +42,7 @@ and equivalent_lists lx ly =
 let range = function
   | Break loc -> loc
   | White (_, loc) -> loc
+  | Comment (_, loc) -> loc
   | Var (_, loc) -> loc
   | Const (_, loc) -> loc
   | Compound (_, _, loc) -> loc
@@ -48,6 +52,7 @@ let rec strip term =
   match term with
   | Break _ -> Break l
   | White (w, _) -> White (w, l)
+  | Comment (c, _) -> Comment (c, l)
   | Var (v, _) -> Var (v, l)
   | Const (c, _) -> Const (c, l)
   | Compound (c, ls, _) ->
@@ -63,6 +68,7 @@ let rec _to_string (with_location : bool) (term : t) =
   match term with
   | Break _ -> "CR" ^ loc
   | White (w, _) -> "W" ^ loc ^ (Format.sprintf "(%S)" w)
+  | Comment (c, _) -> "T" ^ loc ^ (Format.sprintf "(%s)" c)
   | Var ((v, 0), _) -> "H" ^ loc ^ "(" ^ v ^ ")"
   | Var ((v, n), _) ->
     "H" ^ loc ^ "(" ^ v ^ ", " ^ (string_of_int n) ^ ")"

@@ -18,7 +18,7 @@ let enclose_with (left,right) s =
 
 let rec pp formatter term =
   match term with
-  | Const (c, _) -> Format.fprintf formatter "%s" c
+  | Const (c, _) | Comment (c, _) -> Format.fprintf formatter "%s" c
   | Var ((v, _), _) -> Format.fprintf formatter ":[%s]" v
   | Compound (delimiter, terms, _) ->
     let left,right = delimiters_of_string delimiter in

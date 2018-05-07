@@ -27,7 +27,6 @@ let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
 let separators = ',' | ';' | ':' | '.' | '-' '>'
 
 rule read = parse
-
 | newline { LINE_BREAK }
 | "[" { LEFT_BRACKET }
 | "]" { RIGHT_BRACKET }
@@ -49,6 +48,11 @@ rule read = parse
   HOLE name
 }
 | white { WHITESPACE (Lexing.lexeme lexbuf) }
+| "//" { (* FIXME can be simplified as regex? *)
+  let buf = Buffer.create 80 in
+  Buffer.add_string buf "//";
+  read_singleline_comment buf lexbuf
+}
 | '"'   { read_string_literal_double (Buffer.create 17) lexbuf }
 | '\''  { read_string_literal_single (Buffer.create 17) lexbuf }
 | _ as c
@@ -59,16 +63,28 @@ rule read = parse
 }
 | eof { EOF }
 
+and read_singleline_comment buf = parse
+| newline | eof as c {
+  let k = String.length c in
+  lshift_curr lexbuf k;
+  lshift_start lexbuf (Buffer.length buf);
+  SINGLELINE_COMMENT (Buffer.contents buf)
+}
+| _ as c {
+  Buffer.add_char buf c;
+  read_singleline_comment buf lexbuf
+}
+
 (* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
 and read_const buf = parse
-| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | white | newline | separators | '\'' | '"' | eof
+| ":[" | '[' | ']' | '{' | '}' | '(' | ')' | white | newline | separators | '\'' | '"' | eof (* FIXME as c? *)
 {
   let k = String.length (Lexing.lexeme lexbuf) in
   lshift_curr lexbuf k;
   lshift_start lexbuf (Buffer.length buf);
   CONST (Buffer.contents buf)
 }
-| eof
+| eof (* FIXME this is redundant, right? *)
 {
   lshift_start lexbuf ((Buffer.length buf) - 1);
   CONST (Buffer.contents buf)
