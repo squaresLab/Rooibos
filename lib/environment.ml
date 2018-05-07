@@ -23,7 +23,7 @@ let rec substitute env = function
   | Var (var, _) as e ->
     (let e' = lookup env var in
      if e = e' then e' else substitute env e')
-  | White _ | Const _ | Break _ as e -> e
+  | White _ | Const _ | Break _ | Comment _ as e -> e
   | Compound (c, ls, loc) ->
     Compound (c, List.map ~f:(substitute env) ls, loc) (* TODO: hacky *)
 

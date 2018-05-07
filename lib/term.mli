@@ -9,6 +9,7 @@ type variable = string * int
 type t =
   | Break of Location.Range.t
   | White of constant * Location.Range.t
+  | Comment of constant * Location.Range.t
   | Var of variable * Location.Range.t
   | Const of constant * Location.Range.t
   | Compound of constant * t list * Location.Range.t
