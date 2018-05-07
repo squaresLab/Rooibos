@@ -74,7 +74,7 @@ and read_singleline_comment buf = parse
 
 and read_multiline_comment buf = parse
 | "*/" {
-  let s = (Buffer.contents buf) ^ "*/" in
+  let s = "/*" ^ (Buffer.contents buf) ^ "*/" in
   lshift_start lexbuf (String.length s);
   MULTILINE_COMMENT s
 }
