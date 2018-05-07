@@ -94,10 +94,10 @@ let test_comments _ =
                ; Const ("y", mockrg)
                ; Const (";", mockrg)
                ; White (" ", mockrg)
-               ; Comment ("/* world */", mockrg)
+               ; Comment ("/* world.\n how are you? */", mockrg)
                ],
                mockrg))
-    (!"/* hello */ x = y; /* world */");
+    (!"/* hello */ x = y; /* world.\n how are you? */");
 
   assert_equal
     ~printer:Term.to_string_with_loc
