@@ -81,6 +81,11 @@ let test_location _ =
 
   assert_equal
     ~printer:Term.to_string_with_loc
+    (Const ("\"hello world!\"", (rg "1:0#1:14")))
+    (!"\"hello world!\"");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
     (Compound ("block", [Const ("foo",  (rg "1:0#1:3"));
                          White (" ",    (rg "1:3#1:4"));
                          Const ("bar",  (rg "1:4#1:7"))],
@@ -154,6 +159,11 @@ let test_strip _ =
 
 
 let test_match _ =
+  (* BUG #51 *)
+  assert_equiv
+    (make_env [(("1"), !"\"hello world!\"")])
+    (env_of_result !"print(:[1]);" !"print(\"hello world!\");");
+
   assert_equiv
     (make_env [(("1"), !"foo")])
     (env_of_result !"x = :[1];" !"x = foo; x = bar;");
@@ -661,6 +671,11 @@ let test_printer _ =
   let term = !":[1]" in
   assert_equal
     (":[1]")
+    (Printer.to_string term);
+
+  let term = !"\"hello world!\"" in
+  assert_equal
+    ("\"hello world!\"")
     (Printer.to_string term);
 
   let env =
