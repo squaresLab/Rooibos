@@ -331,6 +331,14 @@ let test_match _ =
     None
     (Match.find !"foo.:[1].val = :[2]" !"foo.val = 100");
 
+  assert_equal
+    None
+    (Match.find !":[1]();" !"foo(x);");
+
+  assert_equal
+    (make_env [("1", !"foo")])
+    (env_of_result !":[1]();" !"foo();");
+
   (* string literals *)
 
   assert_equiv

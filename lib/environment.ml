@@ -38,7 +38,7 @@ let strip env =
 
 let to_string env =
     match List.filter ~f:(fun ((_, n), _) -> n = 0) env with
-  | [] -> "Yes"
+  | [] -> "[]"
   | env' -> String.concat ~sep:"\n"
               (List.map
                  ~f:(fun ((x,n), e) ->
