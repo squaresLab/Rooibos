@@ -86,13 +86,13 @@ let rec find_aux env template source : t =
 
 and find_list env lhs rhs =
   (*
-   Format.printf "Matching Sz %d %s@.\
-               With     Sz %d %s@.@."
-  (List.length lhs)
-  (terms_to_s lhs)
-  (List.length rhs)
-  (terms_to_s rhs);
-  *)
+  Format.printf "Matching Sz %d %s@.\
+                 With     Sz %d %s@.@."
+    (List.length lhs)
+    (terms_to_s lhs)
+    (List.length rhs)
+    (terms_to_s rhs);
+     *)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -121,7 +121,6 @@ and find_list env lhs rhs =
      and hole *)
   | (Const (c1, _))::White _::((Var (v, _))::lhs_tl as lhs_continue_match),
     (Const (c2, _))::rhs_tl
-
     when c1 = c2 ->
     begin match skip_until_not_white rhs_tl with
       | start::rhs_tl ->
@@ -133,6 +132,10 @@ and find_list env lhs rhs =
   | (Var (v, loc_var))::suffix::rest as lhs_continue_match,
     term::rhs_tl ->
     begin match suffix, term with
+      (* Stop matching condition: an empty lhs compound does not match nonempty rhs *)
+      | Compound (c1, [], _), Compound (c2, terms_rhs, _)
+        when c1 = c2 && List.length terms_rhs > 0 ->
+        raise NoMatch
       (* Stop matching against this var, we matched a suffix. we are done. we
          also processed everything inside suffix, so we are done there too. *)
       | Compound (c1, terms_lhs, _), Compound (c2, terms_rhs, _)
@@ -201,6 +204,9 @@ and find_list env lhs rhs =
   | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
     find_list env lhs_tl rhs_tl
 
+  (* If the lhs is completely consumed, the rest of rhs doesn't matter. This is
+     only true at the first level of matching (no nested compounds). If lhs is
+     empty and rhs is not empty for compounds, it is caught in the first case *)
   | [], _ ->
     env
 
@@ -262,14 +268,14 @@ let rec find_shift acc template source =
     | None -> acc
   in
   try
-    let mtch = find_aux (Environment.create ()) template source in
-    let _, env = mtch in
-    let acc = mtch::acc in
+    let result = find_aux (Environment.create ()) template source in
+    let _, env = result in
+    let acc = result::acc in
     let var = Environment.vars env |> List.hd_exn in
     let term = Environment.lookup env var in
     let n = size term in
     continue (1+n) acc source
-  with | NoMatch -> continue 1 acc source
+  with NoMatch -> continue 1 acc source
 
 
 (**
