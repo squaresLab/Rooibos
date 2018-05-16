@@ -59,7 +59,7 @@ let env_of_result template source =
   env
 
 let loc_of_result template source =
-  let loc, _ = Option.value_exn (Match.find template source) in
+  let loc, _ = Match.all template source |> Sequence.hd_exn in
   loc
 
 let printer = Environment.to_string
@@ -214,6 +214,12 @@ let test_strip _ =
 
 
 let test_match _ =
+  (* BUG #58 *)
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:11#1:22")
+    (loc_of_result !"print(:[1])" !"int x = 4; print('foo');");
+
   (* BUG #51 *)
   assert_equiv
     (make_env [(("1"), !"\"hello world!\"")])
