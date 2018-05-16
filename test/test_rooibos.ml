@@ -58,6 +58,10 @@ let env_of_result template source =
   let _, env = Option.value_exn (Match.find template source) in
   env
 
+let loc_of_result template source =
+  let loc, _ = Option.value_exn (Match.find template source) in
+  loc
+
 let printer = Environment.to_string
 
 let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
