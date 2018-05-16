@@ -213,13 +213,20 @@ let test_strip _ =
     (Term.strip (!"x:[1]"))
 
 
-let test_match _ =
-  (* BUG #58 *)
+(* BUG #58 *)
+let test_match_location _ =
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:4#1:9")
+    (loc_of_result !"x = :[1];" !"int x = 4;");
+
   assert_equal
     ~printer:Location.Range.to_string
     (rg "1:11#1:22")
-    (loc_of_result !"print(:[1])" !"int x = 4; print('foo');");
+    (loc_of_result !"print(:[1])" !"int x = 4; print('foo');")
 
+
+let test_match _ =
   (* BUG #51 *)
   assert_equiv
     (make_env [(("1"), !"\"hello world!\"")])
@@ -769,7 +776,9 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
-      "test_location" >:: test_location
+      "test_match_location" >:: test_match_location
+    (*
+    ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
     ; "test_parser" >:: test_parser
     ; "test_match" >:: test_match
@@ -777,6 +786,7 @@ let test_printer _ =
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ; "test_all_match" >:: test_all_match
+    *)
     ]
 
 let () = run_test_tt_main suite
