@@ -217,12 +217,12 @@ let test_strip _ =
 let test_match_location _ =
   assert_equal
     ~printer:Location.Range.to_string
-    (rg "1:4#1:9")
+    (rg "1:4#1:10")
     (loc_of_result !"x = :[1];" !"int x = 4;");
 
   assert_equal
     ~printer:Location.Range.to_string
-    (rg "1:11#1:22")
+    (rg "1:11#1:24")
     (loc_of_result !"print(:[1])" !"int x = 4; print('foo');")
 
 
