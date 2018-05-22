@@ -32,9 +32,10 @@ let () =
       | [] -> failwith "No match"
     end
   | _ :: template :: source :: rewrite_template :: _ ->
-    let template = In_channel.read_all template in
-    let source = In_channel.read_all source in
-    let rewrite_template = In_channel.read_all rewrite_template in
+    let read = Fn.compose String.rstrip In_channel.read_all in
+    let template = read template in
+    let source = read source in
+    let rewrite_template = read rewrite_template in
     begin match
         Match.all (to_term template) (to_term source)
         |> Sequence.to_list
