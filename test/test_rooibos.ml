@@ -171,6 +171,18 @@ let test_location _ =
 
   assert_equal
     ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Const ("x", (rg "1:0#1:1"))
+              ; White (" ", (rg "1:1#1:2"))
+              ; Const ("=", (rg "1:2#1:3"))
+              ; White (" ", (rg "1:3#1:4"))
+              ; Const ("'foo\nbar\nheh'", (rg "1:4#3:4"))
+              ; Const (";", (rg "3:4#3:5"))],
+              (rg "1:0#3:5")))
+    (!"x = 'foo\nbar\nheh';");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
     (White (" ", (rg "1:0#1:1")))
     (!" ");
 
