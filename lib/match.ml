@@ -13,6 +13,17 @@ let terms_to_s terms =
   let compound = Compound ("block", terms, Location.Range.unknown) in
     Term.to_string compound
 
+let terms_to_block (terms : Term.t List.t) : Term.t =
+  let open Location.Range in
+  let range = match terms, (List.rev terms) with
+  | (start::_, stop::_) ->
+    let { start = start_loc ; _ } = Term.range start in
+    let { stop = stop_loc ; _ } = Term.range stop in
+      Location.Range.create start_loc stop_loc
+  | _ -> raise NoMatch
+  in
+  Compound ("block", terms, range)
+
 (** Helper function to add a single term to a Var during matching *)
 let add_term env v term =
   let open Location.Range in
@@ -66,16 +77,20 @@ let rec skip_until_not_white = function
   | White _::tl -> skip_until_not_white tl
   | x -> x
 
-
 let rec find_aux env template source : t =
   let range_source = Term.range source in
+  (*
+  Format.printf "find_aux: %s\n" (Location.Range.to_string range_source);
+  *)
   match template, source with
   | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
   | Comment (c1, _), Comment (c2, _) when c1 = c2 -> range_source, env
   | White _, White _ -> range_source, env
   | Break _, Break _ -> range_source, env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
-    range_source, (find_list env lhs rhs)
+    let env = find_list env lhs rhs in
+    let rhs = skip_until_not_white rhs |> terms_to_block in
+    (Term.range rhs), env
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
     let _, env = find_aux env b1 b2 in
     range_source, env
@@ -92,7 +107,7 @@ and find_list env lhs rhs =
     (terms_to_s lhs)
     (List.length rhs)
     (terms_to_s rhs);
-     *)
+  *)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -223,15 +238,21 @@ let find template source =
 (** shift a source by n. n only comes into play for blocks AKA lists *)
 let rec shift_source n source : Term.t option =
   let open Location.Range in
+  (*
+  Printf.printf "shifting by %d terms at %s: %s\n"
+    n
+    (Term.range source |> to_string)
+    (Term.to_string source);
+  *)
   assert (n > 0);
   match source with
-  | Compound (c, terms, { start = loc_start ; _ })
+  | Compound (c, terms, { stop = loc_stop ; _ })
     when c = "block" && (List.length terms > 0) ->
     let terms = List.drop terms n in
-    let loc = begin match List.rev terms with
-      | [] -> Location.Range.unknown (* TODO ewww *)
-      | last_term::_ ->
-        let { stop = loc_stop; _ } = Term.range last_term in
+    let loc = begin match terms with
+      | [] -> Location.Range.unknown
+      | first_term::_ ->
+        let { start = loc_start; _ } = Term.range first_term in
           Location.Range.create loc_start loc_stop
     end in
       Some (Compound (c, terms, loc))

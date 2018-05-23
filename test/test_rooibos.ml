@@ -21,7 +21,7 @@ let rg s =
         (Int.of_string line), (Int.of_string col)
       | _ -> failwith "illegal string format for location\n"
     in
-      Location.create line col col
+      Location.create line col
   in
   let start, stop = match String.split s ~on:'#' with
     | start::stop::[] ->
@@ -57,6 +57,10 @@ let make_env bindings =
 let env_of_result template source =
   let _, env = Option.value_exn (Match.find template source) in
   env
+
+let loc_of_result template source =
+  let loc, _ = Match.all template source |> Sequence.hd_exn in
+  loc
 
 let printer = Environment.to_string
 
@@ -117,13 +121,65 @@ let test_comments _ =
 
 
 let test_location _ =
-  (* TODO: we can't test multi-line strings *)
-  (*
   assert_equal
     ~printer:Term.to_string_with_loc
-    (Const ("foo", (rg "1:1#1:3")))
-    (!"foo");
-  *)
+    (Compound ("block",
+              [ Const ("foo", (rg "1:0#1:3"))
+              ; Break (rg "1:3#2:0")
+              ; Const ("bar", (rg "2:0#2:3"))],
+              (rg "1:0#2:3")))
+    (!"foo\nbar");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Comment ("// foo", (rg "1:0#1:6"))
+              ; Break (rg "1:6#2:0")
+              ; Const ("bar", (rg "2:0#2:3"))],
+              (rg "1:0#2:3")))
+    (!"// foo\nbar");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Comment ("/* foo */", (rg "1:0#1:9"))
+              ; Break (rg "1:9#2:0")
+              ; Const ("bar", (rg "2:0#2:3"))],
+              (rg "1:0#2:3")))
+    (!"/* foo */\nbar");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Comment ("/* foo\nbar */", (rg "1:0#2:6"))
+              ; Break (rg "2:6#3:0")
+              ; Const ("heh", (rg "3:0#3:3"))],
+              (rg "1:0#3:3")))
+    (!"/* foo\nbar */\nheh");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Const ("x", (rg "1:0#1:1"))
+              ; White (" ", (rg "1:1#1:2"))
+              ; Const ("=", (rg "1:2#1:3"))
+              ; White (" ", (rg "1:3#1:4"))
+              ; Const ("\"foo\nbar\nheh\"", (rg "1:4#3:4"))
+              ; Const (";", (rg "3:4#3:5"))],
+              (rg "1:0#3:5")))
+    (!"x = \"foo\nbar\nheh\";");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Const ("x", (rg "1:0#1:1"))
+              ; White (" ", (rg "1:1#1:2"))
+              ; Const ("=", (rg "1:2#1:3"))
+              ; White (" ", (rg "1:3#1:4"))
+              ; Const ("'foo\nbar\nheh'", (rg "1:4#3:4"))
+              ; Const (";", (rg "3:4#3:5"))],
+              (rg "1:0#3:5")))
+    (!"x = 'foo\nbar\nheh';");
 
   assert_equal
     ~printer:Term.to_string_with_loc
@@ -207,6 +263,19 @@ let test_strip _ =
     ~printer:Term.to_string
     (Compound ("block", [Const ("x", (mockrg)); Var (("1",0), (mockrg))], (mockrg)))
     (Term.strip (!"x:[1]"))
+
+
+(* BUG #58 *)
+let test_match_location _ =
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:4#1:10")
+    (loc_of_result !"x = :[1];" !"int x = 4;");
+
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:11#1:24")
+    (loc_of_result !"print(:[1])" !"int x = 4; print('foo');")
 
 
 let test_match _ =
@@ -759,7 +828,8 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
-      "test_location" >:: test_location
+      "test_match_location" >:: test_match_location
+    ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
     ; "test_parser" >:: test_parser
     ; "test_match" >:: test_match

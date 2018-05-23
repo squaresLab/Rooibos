@@ -1,15 +1,14 @@
 type t =
   { line : int
   ; column : int
-  ; offset : int
   }
 
 (* [make] constructs a location from a lexer position [pos] *)
 val make : Lexing.position -> t
 
 (* constructs a location that represents a given line [line] and column
- * [column], and with a given offset [offset]. *)
-val create : int -> int -> int -> t
+ * [column]. *)
+val create : int -> int -> t
 
 module Range : sig
   type k = t
