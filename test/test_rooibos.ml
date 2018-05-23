@@ -121,13 +121,14 @@ let test_comments _ =
 
 
 let test_location _ =
-  (* TODO: we can't test multi-line strings *)
-  (*
   assert_equal
     ~printer:Term.to_string_with_loc
-    (Const ("foo", (rg "1:1#1:3")))
-    (!"foo");
-  *)
+    (Compound ("block",
+              [ Const ("foo", (rg "1:0#1:3"))
+              ; Break (rg "1:3#1:4")
+              ; Const ("bar", (rg "2:0#2:3"))],
+              (rg "1:0#2:3")))
+    (!"foo\nbar");
 
   assert_equal
     ~printer:Term.to_string_with_loc
@@ -777,7 +778,6 @@ let test_printer _ =
   let suite =
     "test" >::: [
       "test_match_location" >:: test_match_location
-    (*
     ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
     ; "test_parser" >:: test_parser
@@ -786,7 +786,6 @@ let test_printer _ =
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ; "test_all_match" >:: test_all_match
-    *)
     ]
 
 let () = run_test_tt_main suite
