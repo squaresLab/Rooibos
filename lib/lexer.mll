@@ -10,6 +10,13 @@ let dump lexbuf =
   let to_s pos = Location.to_string (Location.make pos) in
   Printf.printf "Start, End: (%s, %s)\n" (to_s lexbuf.lex_start_p) (to_s lexbuf.lex_curr_p)
 
+let next_line lexbuf =
+  let pos = lexbuf.lex_curr_p in
+  lexbuf.lex_curr_p <-
+    { pos with pos_bol = lexbuf.lex_curr_pos;
+               pos_lnum = pos.pos_lnum + 1
+    }
+
 let lshift_start lexbuf k =
   lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - k;
   lexbuf.lex_start_p <-
@@ -27,7 +34,10 @@ let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
 let separators = ',' | ';' | ':' | '.' | '-' '>'
 
 rule read = parse
-| newline { LINE_BREAK }
+| newline {
+  next_line lexbuf;
+  LINE_BREAK
+}
 | "[" { LEFT_BRACKET }
 | "]" { RIGHT_BRACKET }
 | "{" { LEFT_BRACE }
