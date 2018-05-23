@@ -132,6 +132,33 @@ let test_location _ =
 
   assert_equal
     ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Comment ("// foo", (rg "1:0#1:6"))
+              ; Break (rg "1:6#2:0")
+              ; Const ("bar", (rg "2:0#2:3"))],
+              (rg "1:0#2:3")))
+    (!"// foo\nbar");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Comment ("/* foo */", (rg "1:0#1:9"))
+              ; Break (rg "1:9#2:0")
+              ; Const ("bar", (rg "2:0#2:3"))],
+              (rg "1:0#2:3")))
+    (!"/* foo */\nbar");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
+              [ Comment ("/* foo\nbar */", (rg "1:0#2:6"))
+              ; Break (rg "2:6#3:0")
+              ; Const ("heh", (rg "3:0#3:3"))],
+              (rg "1:0#3:3")))
+    (!"/* foo\nbar */\nheh");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
     (White (" ", (rg "1:0#1:1")))
     (!" ");
 
