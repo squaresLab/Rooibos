@@ -79,7 +79,9 @@ let rec skip_until_not_white = function
 
 let rec find_aux env template source : t =
   let range_source = Term.range source in
+  (*
   Format.printf "find_aux: %s\n" (Location.Range.to_string range_source);
+  *)
   match template, source with
   | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
   | Comment (c1, _), Comment (c2, _) when c1 = c2 -> range_source, env
@@ -98,14 +100,14 @@ let rec find_aux env template source : t =
     raise NoMatch
 
 and find_list env lhs rhs =
-  (**)
+  (*
   Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
     (List.length lhs)
     (terms_to_s lhs)
     (List.length rhs)
     (terms_to_s rhs);
-     (**)
+  *)
 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
@@ -236,10 +238,12 @@ let find template source =
 (** shift a source by n. n only comes into play for blocks AKA lists *)
 let rec shift_source n source : Term.t option =
   let open Location.Range in
+  (*
   Printf.printf "shifting by %d terms at %s: %s\n"
     n
     (Term.range source |> to_string)
     (Term.to_string source);
+  *)
   assert (n > 0);
   match source with
   | Compound (c, terms, { stop = loc_stop ; _ })

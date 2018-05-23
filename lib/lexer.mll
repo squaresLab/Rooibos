@@ -10,10 +10,22 @@ let dump lexbuf =
   let to_s pos = Location.to_string (Location.make pos) in
   Printf.printf "Start, End: (%s, %s)\n" (to_s lexbuf.lex_start_p) (to_s lexbuf.lex_curr_p)
 
+let next_line lexbuf =
+  let pos = lexbuf.lex_curr_p in
+  lexbuf.lex_curr_p <-
+    { pos with pos_bol = lexbuf.lex_curr_pos;
+               pos_lnum = pos.pos_lnum + 1
+    }
+
 let lshift_start lexbuf k =
   lexbuf.lex_start_pos <- lexbuf.lex_curr_pos - k;
   lexbuf.lex_start_p <-
     { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
+
+(* moves the start position of [lexbuf] back to [pos] *)
+let lshift_start_to lexbuf (pos : Lexing.position) =
+  lexbuf.lex_start_p <- pos;
+  lexbuf.lex_start_pos <- pos.pos_bol + pos.pos_cnum
 
 let lshift_curr lexbuf k =
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
@@ -27,7 +39,10 @@ let hole = ":[" ['a'-'z' 'A'-'Z' '0'-'9' '_']+ "]"
 let separators = ',' | ';' | ':' | '.' | '-' '>'
 
 rule read = parse
-| newline { LINE_BREAK }
+| newline {
+  next_line lexbuf;
+  LINE_BREAK
+}
 | "[" { LEFT_BRACKET }
 | "]" { RIGHT_BRACKET }
 | "{" { LEFT_BRACE }
@@ -49,9 +64,15 @@ rule read = parse
 }
 | white { WHITESPACE (Lexing.lexeme lexbuf) }
 | "//" { read_singleline_comment (Buffer.create 80) lexbuf }
-| "/*" { read_multiline_comment (Buffer.create 80) lexbuf }
-| '"'   { read_string_literal_double (Buffer.create 17) lexbuf }
-| '\''  { read_string_literal_single (Buffer.create 17) lexbuf }
+| "/*" {
+  read_multiline_comment (lexbuf.lex_start_p) (Buffer.create 80) lexbuf
+}
+| '"'   {
+  read_string_literal_double (lexbuf.lex_start_p) (Buffer.create 17) lexbuf
+}
+| '\''  {
+  read_string_literal_single (lexbuf.lex_start_p) (Buffer.create 17) lexbuf
+}
 | _ as c
 {
   let buf = Buffer.create 17 in
@@ -72,16 +93,21 @@ and read_singleline_comment buf = parse
   read_singleline_comment buf lexbuf
 }
 
-and read_multiline_comment buf = parse
+and read_multiline_comment pos_start buf = parse
 | "*/" {
   let s = "/*" ^ (Buffer.contents buf) ^ "*/" in
-  lshift_start lexbuf (String.length s);
+  lshift_start_to lexbuf pos_start; (* FIXME borked? *)
   MULTILINE_COMMENT s
 }
 | eof { failwith "Multi-line comment is not terminated" }
+| newline as c {
+  next_line lexbuf;
+  Buffer.add_string buf c;
+  read_multiline_comment pos_start buf lexbuf
+}
 | _ as c {
   Buffer.add_char buf c;
-  read_multiline_comment buf lexbuf
+  read_multiline_comment pos_start buf lexbuf
 }
 
 (* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
@@ -103,40 +129,37 @@ and read_const buf = parse
   read_const buf lexbuf
 }
 
-and read_string_literal_double buf = parse
+and read_string_literal_double pos_start buf = parse
 | '"' {
-
   let s = Format.sprintf "\"%s\"" (Buffer.contents buf) in
-  lshift_start lexbuf (String.length s);
+  lshift_start_to lexbuf pos_start;
   CONST s
 }
-| [^ '"']+ {
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  read_string_literal_double buf lexbuf
-}
 | eof { failwith "String is not terminated" }
-| _ {
-  let pos = lexbuf.lex_curr_p in
-  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
-    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
-  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos)
+| newline as c {
+  next_line lexbuf;
+  Buffer.add_string buf c;
+  read_string_literal_double pos_start buf lexbuf
+}
+| _ as c {
+    Buffer.add_char buf c;
+  read_string_literal_double pos_start buf lexbuf
 }
 
 (* FIXME 99% copypasto *)
-and read_string_literal_single buf = parse
+and read_string_literal_single pos_start buf = parse
 | '\'' {
   let s = Format.sprintf "'%s'" (Buffer.contents buf) in
-  lshift_start lexbuf (String.length s);
+  lshift_start_to lexbuf pos_start;
   CONST s
 }
-| [^ '\'']+ {
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  read_string_literal_single buf lexbuf
-}
 | eof { failwith "String is not terminated" }
-| _  {
-  let pos = lexbuf.lex_curr_p in
-  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
-    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
-  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos)
+| newline as c {
+  next_line lexbuf;
+  Buffer.add_string buf c;
+  read_string_literal_single pos_start buf lexbuf
+}
+| _ as c {
+    Buffer.add_char buf c;
+  read_string_literal_single pos_start buf lexbuf
 }
