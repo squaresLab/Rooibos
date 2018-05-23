@@ -22,6 +22,11 @@ let lshift_start lexbuf k =
   lexbuf.lex_start_p <-
     { lexbuf.lex_start_p with pos_cnum = lexbuf.lex_curr_p.pos_cnum - k }
 
+(* moves the start position of [lexbuf] back to [pos] *)
+let lshift_start_to lexbuf (pos : Lexing.position) =
+  lexbuf.lex_start_p <- pos;
+  lexbuf.lex_start_pos <- pos.pos_bol + pos.pos_cnum
+
 let lshift_curr lexbuf k =
   lexbuf.lex_curr_pos <- lexbuf.lex_curr_pos - k;
   lexbuf.lex_curr_p <-
@@ -59,7 +64,9 @@ rule read = parse
 }
 | white { WHITESPACE (Lexing.lexeme lexbuf) }
 | "//" { read_singleline_comment (Buffer.create 80) lexbuf }
-| "/*" { read_multiline_comment (Buffer.create 80) lexbuf }
+| "/*" {
+    read_multiline_comment (lexbuf.lex_start_p) (Buffer.create 80) lexbuf (* FIXME is this fresh? *)
+}
 | '"'   { read_string_literal_double (Buffer.create 17) lexbuf }
 | '\''  { read_string_literal_single (Buffer.create 17) lexbuf }
 | _ as c
@@ -82,16 +89,21 @@ and read_singleline_comment buf = parse
   read_singleline_comment buf lexbuf
 }
 
-and read_multiline_comment buf = parse
+and read_multiline_comment pos_start buf = parse
 | "*/" {
   let s = "/*" ^ (Buffer.contents buf) ^ "*/" in
-  lshift_start lexbuf (String.length s);
+  lshift_start_to lexbuf pos_start; (* FIXME borked? *)
   MULTILINE_COMMENT s
 }
 | eof { failwith "Multi-line comment is not terminated" }
+| newline as c {
+  next_line lexbuf;
+  Buffer.add_string buf c;
+  read_multiline_comment pos_start buf lexbuf
+}
 | _ as c {
   Buffer.add_char buf c;
-  read_multiline_comment buf lexbuf
+  read_multiline_comment pos_start buf lexbuf
 }
 
 (* read until we hit whitespace, a new line, or some kind of delimiter (including start of strings) *)
