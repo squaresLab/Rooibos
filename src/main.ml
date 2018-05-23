@@ -17,7 +17,11 @@ let from_file_exn fn = Fn.compose to_term In_channel.read_all
 
 let () =
   match Array.to_list Sys.argv with
-  | _ :: "parse" :: "--location" :: str :: _ ->
+  | _ :: "parsef" :: fn :: _ ->
+      let source : string = In_channel.read_all fn in
+      let term = to_term source in
+      Format.printf "%s\n" (Term.to_string_with_loc term)
+  | _ :: "parse" :: "-i" :: "--location" :: str :: _ ->
     let term = to_term str in
       Format.printf "%s\n" (Term.to_string_with_loc term)
   | _ :: "parse" :: str :: _ ->
