@@ -65,10 +65,14 @@ rule read = parse
 | white { WHITESPACE (Lexing.lexeme lexbuf) }
 | "//" { read_singleline_comment (Buffer.create 80) lexbuf }
 | "/*" {
-    read_multiline_comment (lexbuf.lex_start_p) (Buffer.create 80) lexbuf (* FIXME is this fresh? *)
+  read_multiline_comment (lexbuf.lex_start_p) (Buffer.create 80) lexbuf
 }
-| '"'   { read_string_literal_double (Buffer.create 17) lexbuf }
-| '\''  { read_string_literal_single (Buffer.create 17) lexbuf }
+| '"'   {
+  read_string_literal_double (lexbuf.lex_start_p) (Buffer.create 17) lexbuf
+}
+| '\''  {
+  read_string_literal_single (lexbuf.lex_start_p) (Buffer.create 17) lexbuf
+}
 | _ as c
 {
   let buf = Buffer.create 17 in
@@ -125,40 +129,37 @@ and read_const buf = parse
   read_const buf lexbuf
 }
 
-and read_string_literal_double buf = parse
+and read_string_literal_double pos_start buf = parse
 | '"' {
-
   let s = Format.sprintf "\"%s\"" (Buffer.contents buf) in
-  lshift_start lexbuf (String.length s);
+  lshift_start_to lexbuf pos_start;
   CONST s
 }
-| [^ '"']+ {
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  read_string_literal_double buf lexbuf
-}
 | eof { failwith "String is not terminated" }
-| _ {
-  let pos = lexbuf.lex_curr_p in
-  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
-    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
-  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos)
+| newline as c {
+  next_line lexbuf;
+  Buffer.add_string buf c;
+  read_string_literal_double pos_start buf lexbuf
+}
+| _ as c {
+    Buffer.add_char buf c;
+  read_string_literal_double pos_start buf lexbuf
 }
 
 (* FIXME 99% copypasto *)
-and read_string_literal_single buf = parse
+and read_string_literal_single pos_start buf = parse
 | '\'' {
   let s = Format.sprintf "'%s'" (Buffer.contents buf) in
-  lshift_start lexbuf (String.length s);
+  lshift_start_to lexbuf pos_start;
   CONST s
 }
-| [^ '\'']+ {
-  Buffer.add_string buf (Lexing.lexeme lexbuf);
-  read_string_literal_single buf lexbuf
-}
 | eof { failwith "String is not terminated" }
-| _  {
-  let pos = lexbuf.lex_curr_p in
-  let pos = Format.sprintf "%s:%d:%d" pos.pos_fname
-    pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) in
-  failwith ("Illegal string character: " ^ Lexing.lexeme lexbuf ^ ": " ^ pos)
+| newline as c {
+  next_line lexbuf;
+  Buffer.add_string buf c;
+  read_string_literal_single pos_start buf lexbuf
+}
+| _ as c {
+    Buffer.add_char buf c;
+  read_string_literal_single pos_start buf lexbuf
 }
