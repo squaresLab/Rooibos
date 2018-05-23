@@ -3,7 +3,6 @@ open Core_kernel
 type t =
   { line : int
   ; column : int
-  ; offset : int
   }
 
 let to_string loc =
@@ -11,17 +10,15 @@ let to_string loc =
 
 let make pos =
   let open Lexing in
-    { offset = pos.pos_cnum
-    ; line = pos.pos_lnum
+    { line = pos.pos_lnum
     ; column = pos.pos_cnum - pos.pos_bol
     }
 
-let create line column offset =
-  { line ; column; offset }
+let create line column =
+  { line ; column }
 
 let unknown =
-  { offset = 0
-  ; line = 0
+  { line = 0
   ; column = 0
   }
 
