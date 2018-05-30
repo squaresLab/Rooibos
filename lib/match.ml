@@ -290,12 +290,15 @@ let rec find_shift acc template source =
   in
   try
     let result = find_aux (Environment.create ()) template source in
-    let _, env = result in
+    let rng, env = result in
     let acc = result::acc in
-    let var = Environment.vars env |> List.hd_exn in
-    let term = Environment.lookup env var in
-    let n = size term in
-    continue (1+n) acc source
+    (* Format.printf "found match at %s!\n" (Location.Range.to_string rng); *)
+    match Environment.vars env with
+    | [] -> continue 1 acc source
+    | var::_ -> begin
+      let n = Environment.lookup env var |> size in
+      continue (1+n) acc source
+      end
   with NoMatch -> continue 1 acc source
 
 

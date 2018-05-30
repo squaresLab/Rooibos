@@ -207,6 +207,14 @@ let test_location _ =
     (!"x:[1]")
 
 
+let test_match_no_holes _ =
+  (* BUG #53 *)
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:11#1:24")
+    (loc_of_result !"print('foo')" !"int x = 4; print('foo');")
+
+
 let test_parser _ =
   !"" |> ignore;
   !"x" |> ignore;
@@ -837,6 +845,7 @@ let test_printer _ =
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ; "test_all_match" >:: test_all_match
+    ; "test_match_no_holes" >:: test_match_no_holes
     ]
 
 let () = run_test_tt_main suite
