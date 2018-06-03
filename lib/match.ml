@@ -88,6 +88,7 @@ let rec find_aux env template source : t =
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
     let env, rev_matched_terms = find_list env lhs rhs [] in
     let matched = terms_to_block (List.rev rev_matched_terms) in
+    Printf.printf "matched list to: %s\n" (Term.to_string_with_loc matched);
     (* let rhs = skip_until_not_white rhs |> terms_to_block in *)
     (Term.range matched), env
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
@@ -111,6 +112,12 @@ and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t 
   match lhs, rhs with
   | White _::lhs_tl, rhs ->
     find_list env lhs_tl rhs acc
+
+  (* If the lhs is completely consumed, the rest of rhs doesn't matter. This is
+     only true at the first level of matching (no nested compounds). If lhs is
+     empty and rhs is not empty for compounds, it is caught in the first case *)
+  | [], _ ->
+    env, acc
 
   (* FIXME #30 : by default we want to skip white space on the rhs unless we are
      'in a match'. The problem is, when lhs contains a Var here, we want to keep
@@ -217,12 +224,6 @@ and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t 
 
   | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
     find_list env lhs_tl rhs_tl []
-
-  (* If the lhs is completely consumed, the rest of rhs doesn't matter. This is
-     only true at the first level of matching (no nested compounds). If lhs is
-     empty and rhs is not empty for compounds, it is caught in the first case *)
-  | [], _ ->
-    env, acc
 
   | _, _ ->
     raise NoMatch
