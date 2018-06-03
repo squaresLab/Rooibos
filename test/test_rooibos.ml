@@ -249,7 +249,7 @@ let test_match_no_holes _ =
   (* BUG #53 *)
   assert_equal
     ~printer:Location.Range.to_string
-    (rg "1:11#1:24")
+    (rg "1:11#1:23")
     (loc_of_result !"print('foo')" !"int x = 4; print('foo');");
 
   assert_equal
