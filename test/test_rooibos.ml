@@ -240,6 +240,11 @@ let test_location _ =
 
 
 let test_match_no_holes _ =
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:4#1:9")
+    (loc_of_result !"a + b" !"foo(a + b + c)");
+
   (* BUG #53 *)
   assert_equal
     ~printer:Location.Range.to_string
@@ -250,7 +255,6 @@ let test_match_no_holes _ =
     ~printer:Location.Range.to_string
     (rg "1:82#1:85")
     (loc_of_result !" + " !"NODELET_ERROR_STREAM(\"CmdVelMux : yaml parsing problem [\" << std::string(e.what()) + \"]\");")
-
 
 let test_parser _ =
   !"" |> ignore;
@@ -873,6 +877,7 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
+    (*
       "test_match_location" >:: test_match_location
     ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
@@ -882,7 +887,7 @@ let test_printer _ =
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ; "test_all_match" >:: test_all_match
-    ; "test_match_no_holes" >:: test_match_no_holes
+    ; *) "test_match_no_holes" >:: test_match_no_holes
     ]
 
 let () = run_test_tt_main suite
