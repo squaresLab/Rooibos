@@ -240,10 +240,11 @@ let test_location _ =
 
 
 let test_match_no_holes _ =
+  (* BUG 69 *)
   assert_equal
     ~printer:Location.Range.to_string
     (rg "1:4#1:9")
-    (loc_of_result !"a + b" !"foo(a + b + c)");
+    (loc_of_result !"a + b" !"foo(a + b + c + d)");
 
   (* BUG #53 *)
   assert_equal
