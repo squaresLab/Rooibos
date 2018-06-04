@@ -323,6 +323,11 @@ let all template source =
   Printf.printf "Finding matches of template: %s\n" (Term.to_string_with_loc template);
   Printf.printf "in source: %s\n" (Term.to_string_with_loc source);
   *)
+  (* NOTE fixes #53 by wrapping single terms into a singleton sequence *)
+  let template = match template with
+    | Compound ("block", _, _) -> template
+    | _ -> Compound ("block", [template], (Term.range template))
+  in
   let rec aux acc template source =
     match source with
     | Compound ("block", terms, _) as this_level ->
