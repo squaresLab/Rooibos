@@ -58,6 +58,9 @@ let env_of_result template source =
   let _, env = Option.value_exn (Match.find template source) in
   env
 
+let num_results template source =
+  Match.all template source |> Sequence.length
+
 let loc_of_result template source =
   let loc, _ = Match.all template source |> Sequence.hd_exn in
   loc
@@ -321,6 +324,14 @@ let test_strip _ =
     ~printer:Term.to_string
     (Compound ("block", [Const ("x", (mockrg)); Var (("1",0), (mockrg))], (mockrg)))
     (Term.strip (!"x:[1]"))
+
+
+let test_num_matches _ =
+  assert_equal 1
+    (num_results !"x = :[1];" !"int x = 4;");
+
+  assert_equal 2
+    (num_results !"+" !"wpy = oy + b * t;\nwpz = oz + c * t;")
 
 
 (* BUG #58 *)
