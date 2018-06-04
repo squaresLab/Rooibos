@@ -250,12 +250,13 @@ let test_match_no_holes _ =
   assert_equal
     ~printer:Location.Range.to_string
     (rg "1:11#1:23")
-    (loc_of_result !"print('foo')" !"int x = 4; print('foo');");
-
+    (loc_of_result !"print('foo')" !"int x = 4; print('foo');")
+  (*
   assert_equal
     ~printer:Location.Range.to_string
     (rg "1:82#1:85")
     (loc_of_result !" + " !"NODELET_ERROR_STREAM(\"CmdVelMux : yaml parsing problem [\" << std::string(e.what()) + \"]\");")
+  *)
 
 let test_parser _ =
   !"" |> ignore;
@@ -324,11 +325,15 @@ let test_match_location _ =
 
   assert_equal
     ~printer:Location.Range.to_string
-    (rg "1:11#1:24")
+    (rg "1:11#1:23")
     (loc_of_result !"print(:[1])" !"int x = 4; print('foo');")
 
 
 let test_match _ =
+  assert_equiv
+    (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
+    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
+
   (* BUG #51 *)
   assert_equiv
     (make_env [(("1"), !"\"hello world!\"")])
@@ -437,10 +442,6 @@ let test_match _ =
   assert_equiv
     (make_env [("1", !"()()()")])
     (env_of_result !"{():[1]}" !"{()()()()}");
-
-  assert_equiv
-    (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
-    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
 
   assert_equiv
     (make_env [("1", !".")])
@@ -878,8 +879,8 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
-    (*
       "test_match_location" >:: test_match_location
+    (*
     ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
     ; "test_parser" >:: test_parser
@@ -888,7 +889,8 @@ let test_printer _ =
     ; "not_handled_tests" >:: not_handled_tests
     ; "test_printer" >:: test_printer
     ; "test_all_match" >:: test_all_match
-    ; *) "test_match_no_holes" >:: test_match_no_holes
+    ; "test_match_no_holes" >:: test_match_no_holes
+    *)
     ]
 
 let () = run_test_tt_main suite
