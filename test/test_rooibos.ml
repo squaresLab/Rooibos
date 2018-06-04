@@ -250,13 +250,13 @@ let test_match_no_holes _ =
   assert_equal
     ~printer:Location.Range.to_string
     (rg "1:11#1:23")
-    (loc_of_result !"print('foo')" !"int x = 4; print('foo');")
-  (*
+    (loc_of_result !"print('foo')" !"int x = 4; print('foo');");
+
   assert_equal
     ~printer:Location.Range.to_string
     (rg "1:82#1:85")
     (loc_of_result !" + " !"NODELET_ERROR_STREAM(\"CmdVelMux : yaml parsing problem [\" << std::string(e.what()) + \"]\");")
-  *)
+
 
 let test_parser _ =
   !"" |> ignore;
