@@ -124,6 +124,38 @@ let test_location _ =
   assert_equal
     ~printer:Term.to_string_with_loc
     (Compound ("block",
+              [ Const ("NODELET_ERROR_STREAM", (rg "1:0#1:20"))
+              ; Compound ("round",
+                         [ Compound ("block",
+                                    [ Const ("\"CmdVelMux : yaml parsing problem [\"", (rg "1:21#1:57"))
+                                    ; White (" ", (rg "1:57#1:58"))
+                                    ; Const ("<<", (rg "1:58#1:60"))
+                                    ; White (" ", (rg "1:60#1:61"))
+                                    ; Const ("std", (rg "1:61#1:64"))
+                                    ; Const (":", (rg "1:64#1:65"))
+                                    ; Const (":", (rg "1:65#1:66"))
+                                    ; Const ("string", (rg "1:66#1:72"))
+                                    ; Compound ("round",
+                                               [ Compound ("block",
+                                                           [ Const ("e", (rg "1:73#1:74"))
+                                                           ; Const (".", (rg "1:74#1:75"))
+                                                           ; Const ("what", (rg "1:75#1:79"))
+                                                           ; Compound ("round", [], (rg "1:79#1:81")) ],
+                                                           (rg "1:73#1:81")) ],
+                                               (rg "1:72#1:82"))
+                                    ; White (" ", (rg "1:82#1:83"))
+                                    ; Const ("+", (rg "1:83#1:84"))
+                                    ; White (" ", (rg "1:84#1:85"))
+                                    ; Const ("\"]\"", (rg "1:85#1:88"))],
+                                    (rg "1:21#1:88")) ],
+                         (rg "1:20#1:89"))
+              ; Const (";", (rg "1:89#1:90"))],
+              (rg "1:0#1:90")))
+    (!"NODELET_ERROR_STREAM(\"CmdVelMux : yaml parsing problem [\" << std::string(e.what()) + \"]\");");
+
+  assert_equal
+    ~printer:Term.to_string_with_loc
+    (Compound ("block",
               [ Const ("foo", (rg "1:0#1:3"))
               ; Break (rg "1:3#2:0")
               ; Const ("bar", (rg "2:0#2:3"))],
@@ -208,12 +240,23 @@ let test_location _ =
 
 
 let test_match_no_holes _ =
+  (* BUG 69 *)
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:4#1:9")
+    (loc_of_result !"a + b" !"foo(a + b + c + d)");
+
   (* BUG #53 *)
   assert_equal
     ~printer:Location.Range.to_string
-    (rg "1:11#1:24")
+    (rg "1:11#1:23")
     (loc_of_result !"print('foo')" !"int x = 4; print('foo');")
-
+  (*
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:82#1:85")
+    (loc_of_result !" + " !"NODELET_ERROR_STREAM(\"CmdVelMux : yaml parsing problem [\" << std::string(e.what()) + \"]\");")
+  *)
 
 let test_parser _ =
   !"" |> ignore;
@@ -282,11 +325,15 @@ let test_match_location _ =
 
   assert_equal
     ~printer:Location.Range.to_string
-    (rg "1:11#1:24")
+    (rg "1:11#1:23")
     (loc_of_result !"print(:[1])" !"int x = 4; print('foo');")
 
 
 let test_match _ =
+  assert_equiv
+    (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
+    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
+
   (* BUG #51 *)
   assert_equiv
     (make_env [(("1"), !"\"hello world!\"")])
@@ -395,10 +442,6 @@ let test_match _ =
   assert_equiv
     (make_env [("1", !"()()()")])
     (env_of_result !"{():[1]}" !"{()()()()}");
-
-  assert_equiv
-    (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
-    (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
 
   assert_equiv
     (make_env [("1", !".")])

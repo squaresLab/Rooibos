@@ -20,7 +20,9 @@ let terms_to_block (terms : Term.t List.t) : Term.t =
     let { start = start_loc ; _ } = Term.range start in
     let { stop = stop_loc ; _ } = Term.range stop in
       Location.Range.create start_loc stop_loc
-  | _ -> raise NoMatch
+  | [], [] ->
+      Location.Range.unknown
+  | _, _ -> failwith "failed to transform list of terms into a block"
   in
   Compound ("block", terms, range)
 
@@ -79,18 +81,17 @@ let rec skip_until_not_white = function
 
 let rec find_aux env template source : t =
   let range_source = Term.range source in
-  (*
-  Format.printf "find_aux: %s\n" (Location.Range.to_string range_source);
-  *)
+  (* Format.printf "find_aux: %s\n" (Location.Range.to_string range_source); *)
   match template, source with
   | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
   | Comment (c1, _), Comment (c2, _) when c1 = c2 -> range_source, env
   | White _, White _ -> range_source, env
   | Break _, Break _ -> range_source, env
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
-    let env = find_list env lhs rhs in
-    let rhs = skip_until_not_white rhs |> terms_to_block in
-    (Term.range rhs), env
+    let env, rev_matched_terms = find_list env lhs rhs [] in
+    let matched = terms_to_block (List.rev rev_matched_terms) in
+    (* Printf.printf "matched list to: %s\n" (Term.to_string_with_loc matched); *)
+    (Term.range matched), env
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
     let _, env = find_aux env b1 b2 in
     range_source, env
@@ -99,7 +100,9 @@ let rec find_aux env template source : t =
   | _, _ ->
     raise NoMatch
 
-and find_list env lhs rhs =
+(* FIXME should return a location range *)
+(* acc is used to maintain a buffer of the terms that have been matched *)
+and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t =
   (*
   Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
@@ -108,10 +111,16 @@ and find_list env lhs rhs =
     (List.length rhs)
     (terms_to_s rhs);
   *)
-
   match lhs, rhs with
+  (* FIXME what if the next term in the RHS is also whitespace? *)
   | White _::lhs_tl, rhs ->
-    find_list env lhs_tl rhs
+    find_list env lhs_tl rhs acc
+
+  (* If the lhs is completely consumed, the rest of rhs doesn't matter. This is
+     only true at the first level of matching (no nested compounds). If lhs is
+     empty and rhs is not empty for compounds, it is caught in the first case *)
+  | [], _ ->
+    env, acc
 
   (* FIXME #30 : by default we want to skip white space on the rhs unless we are
      'in a match'. The problem is, when lhs contains a Var here, we want to keep
@@ -119,29 +128,36 @@ and find_list env lhs rhs =
      case after | Var v::suffix ... doesn't work because the | Var v... will
      bind whitespace before a const, because it is written with the implicit
      assumption that matching the | Var v case means is 'in a match' *)
-  | lhs, White _::rhs_tl ->
-    find_list env lhs rhs_tl
+  | lhs, (White _ as term)::rhs_tl ->
+    (* we only accumulate the whitespace if matching has begun *)
+    begin
+    let acc = match acc with
+      | [] -> []
+      | _ -> term::acc
+    in
+      find_list env lhs rhs_tl acc
+    end
 
-  | (Break _)::lhs_tl, (Break _)::rhs_tl ->
-    find_list env lhs_tl rhs_tl
+  | (Break _)::lhs_tl, (Break _ as term)::rhs_tl ->
+    find_list env lhs_tl rhs_tl (term::acc)
 
-  | (Const (c1, _))::lhs_tl, (Const (c2, _))::rhs_tl when c1 = c2 ->
-    find_list env lhs_tl rhs_tl
+  | (Const (c1, _))::lhs_tl, (Const (c2, _) as term)::rhs_tl when c1 = c2 ->
+    find_list env lhs_tl rhs_tl (term::acc)
 
   (* Identify start of matching, Part 1: when it is a const before hole *)
   | (Const (c1, _))::((Var (v, _))::lhs_tl as lhs_continue_match),
-    (Const (c2, _))::rhs_tl
+    (Const (c2, _) as term)::rhs_tl
 
   (* Identify start of matching, Part 2: when there is whitespace between cons
      and hole *)
   | (Const (c1, _))::White _::((Var (v, _))::lhs_tl as lhs_continue_match),
-    (Const (c2, _))::rhs_tl
+    (Const (c2, _) as term)::rhs_tl
     when c1 = c2 ->
     begin match skip_until_not_white rhs_tl with
       | start::rhs_tl ->
         let env = Environment.add env v start in
-        find_list env lhs_continue_match rhs_tl
-      | [] -> env (* Var associates with nothing, end of the list *)
+        find_list env lhs_continue_match rhs_tl (term::acc)
+      | [] -> env, acc (* Var associates with nothing, end of the list *)
     end
 
   | (Var (v, loc_var))::suffix::rest as lhs_continue_match,
@@ -155,11 +171,11 @@ and find_list env lhs rhs =
          also processed everything inside suffix, so we are done there too. *)
       | Compound (c1, terms_lhs, _), Compound (c2, terms_rhs, _)
         when c1 = c2 ->
-        let env = find_list env terms_lhs terms_rhs in
-        find_list env rest rhs_tl
+        let env, _ = find_list env terms_lhs terms_rhs [] in
+        find_list env rest rhs_tl (term::acc)
       (* we are done with this var, and suffix. continue with the rest *)
       | Const (c1, _), Const (c2, _) when c1 = c2 ->
-        find_list env rest rhs_tl
+        find_list env rest rhs_tl (term::acc)
       (* if suffix is whitespace, we need to trim it and continue and try again.
          we know that we will hit some sort of suffix later. therefore it is ok
          to deicide to save term here regardless. we don't want to propagate
@@ -168,7 +184,7 @@ and find_list env lhs rhs =
          we skip. I.e., term may be white space here, and we keep it. *)
       | White _, term ->
         let env = add_term env v term in
-        find_list env (Var (v, loc_var)::rest) rhs_tl
+        find_list env (Var (v, loc_var)::rest) rhs_tl (term::acc) (* FIXME? *)
       (* else, not equal, then add term (including whitespace, if any) and continue *)
       | _, term ->
         begin match rhs_tl with
@@ -181,49 +197,43 @@ and find_list env lhs rhs =
                  end *)
               | hd::_ when Term.equivalent hd suffix ->
                 let env = add_term env v term in
-                find_list env lhs_continue_match rhs_tl
+                find_list env lhs_continue_match rhs_tl (term::acc)
               (* add the term and the 'next' white space since it is not suffix *)
               | _ ->
                 let env = add_term env v term in
                 let env = add_term env v next in
-                find_list env lhs_continue_match rhs_tl
+                find_list env lhs_continue_match rhs_tl (term::acc)
             end
           (* if other next term, add this term and continue. other will be
              handled in the next round of the loop*)
           | non_white_next_term::_ ->
             let env = add_term env v term in
-            find_list env lhs_continue_match rhs_tl
-          | [] -> find_list env lhs_continue_match rhs_tl
+            find_list env lhs_continue_match rhs_tl (term::acc)
+          | [] -> find_list env lhs_continue_match rhs_tl (term::acc)
         end
     end
 
   (* We kept consuming and adding terms to var's list, and reached the end of
      source. Just return env *)
   | [Var _], [] ->
-    env
+    env, acc
 
   | [Var (v, _)], [term] ->
-    add_term env v term
+    (add_term env v term), (term::acc)
 
   | [Var (v, _)], last_terms ->
-    add_terms env v last_terms
+    (add_terms env v last_terms), ((List.rev last_terms) @ acc)
 
-  | Compound ("block", lhs, _)::lhs_tl, Compound ("block", rhs, _)::rhs_tl ->
-    let env = find_list env lhs rhs in
-    find_list env lhs_tl rhs_tl
+  | Compound ("block", lhs, _)::lhs_tl, (Compound ("block", rhs, _) as term)::rhs_tl ->
+    let env, _ = find_list env lhs rhs [] in
+    find_list env lhs_tl rhs_tl (term::acc)
 
-  | Compound (c1, [b1], _)::lhs_tl, Compound (c2, [b2], _)::rhs_tl ->
+  | Compound (c1, [b1], _)::lhs_tl, (Compound (c2, [b2], _) as term)::rhs_tl ->
     let _, env = find_aux env b1 b2 in
-    find_list env lhs_tl rhs_tl
+    find_list env lhs_tl rhs_tl (term::acc)
 
   | Compound (c1, [], _)::lhs_tl, Compound (c2, [], _)::rhs_tl ->
-    find_list env lhs_tl rhs_tl
-
-  (* If the lhs is completely consumed, the rest of rhs doesn't matter. This is
-     only true at the first level of matching (no nested compounds). If lhs is
-     empty and rhs is not empty for compounds, it is caught in the first case *)
-  | [], _ ->
-    env
+    find_list env lhs_tl rhs_tl []
 
   | _, _ ->
     raise NoMatch
@@ -309,6 +319,10 @@ let rec find_shift acc template source =
    (3) For each list of terms in compounds/leafs, also run find_shift.
 *)
 let all template source =
+  (*
+  Printf.printf "Finding matches of template: %s\n" (Term.to_string_with_loc template);
+  Printf.printf "in source: %s\n" (Term.to_string_with_loc source);
+  *)
   let rec aux acc template source =
     match source with
     | Compound ("block", terms, _) as this_level ->
