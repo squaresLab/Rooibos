@@ -20,7 +20,9 @@ let terms_to_block (terms : Term.t List.t) : Term.t =
     let { start = start_loc ; _ } = Term.range start in
     let { stop = stop_loc ; _ } = Term.range stop in
       Location.Range.create start_loc stop_loc
-  | _ -> raise NoMatch
+  | [], [] ->
+      Location.Range.unknown
+  | _, _ -> failwith "failed to transform list of terms into a block"
   in
   Compound ("block", terms, range)
 
@@ -89,7 +91,6 @@ let rec find_aux env template source : t =
     let env, rev_matched_terms = find_list env lhs rhs [] in
     let matched = terms_to_block (List.rev rev_matched_terms) in
     Printf.printf "matched list to: %s\n" (Term.to_string_with_loc matched);
-    (* let rhs = skip_until_not_white rhs |> terms_to_block in *)
     (Term.range matched), env
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
     let _, env = find_aux env b1 b2 in
