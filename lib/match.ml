@@ -302,7 +302,7 @@ let rec find_shift acc template source =
     let result = find_aux (Environment.create ()) template source in
     let rng, env = result in
     let acc = result::acc in
-    Format.printf "found match at %s!\n" (Location.Range.to_string rng);
+    (* Format.printf "found match at %s!\n" (Location.Range.to_string rng); *)
     match Environment.vars env with
     | [] -> continue 1 acc source
     | var::_ -> begin

@@ -880,7 +880,6 @@ let test_printer _ =
   let suite =
     "test" >::: [
       "test_match_location" >:: test_match_location
-    (*
     ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
     ; "test_parser" >:: test_parser
@@ -890,7 +889,6 @@ let test_printer _ =
     ; "test_printer" >:: test_printer
     ; "test_all_match" >:: test_all_match
     ; "test_match_no_holes" >:: test_match_no_holes
-    *)
     ]
 
 let () = run_test_tt_main suite
