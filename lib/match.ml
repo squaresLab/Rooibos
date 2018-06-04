@@ -81,7 +81,7 @@ let rec skip_until_not_white = function
 
 let rec find_aux env template source : t =
   let range_source = Term.range source in
-  Format.printf "find_aux: %s\n" (Location.Range.to_string range_source);
+  (* Format.printf "find_aux: %s\n" (Location.Range.to_string range_source); *)
   match template, source with
   | Const (c1, _), Const (c2, _) when c1 = c2 -> range_source, env
   | Comment (c1, _), Comment (c2, _) when c1 = c2 -> range_source, env
@@ -90,7 +90,7 @@ let rec find_aux env template source : t =
   | Compound ("block", lhs, _), Compound ("block", rhs, _) ->
     let env, rev_matched_terms = find_list env lhs rhs [] in
     let matched = terms_to_block (List.rev rev_matched_terms) in
-    Printf.printf "matched list to: %s\n" (Term.to_string_with_loc matched);
+    (* Printf.printf "matched list to: %s\n" (Term.to_string_with_loc matched); *)
     (Term.range matched), env
   | Compound (c1, [b1], _), Compound(c2, [b2], _) when c1 = c2 ->
     let _, env = find_aux env b1 b2 in
@@ -103,14 +103,16 @@ let rec find_aux env template source : t =
 (* FIXME should return a location range *)
 (* acc is used to maintain a buffer of the terms that have been matched *)
 and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t =
+  (*
   Format.printf "Matching Sz %d %s@.\
                  With     Sz %d %s@.@."
     (List.length lhs)
     (terms_to_s lhs)
     (List.length rhs)
     (terms_to_s rhs);
-
+  *)
   match lhs, rhs with
+  (* FIXME what if the next term in the RHS is also whitespace? *)
   | White _::lhs_tl, rhs ->
     find_list env lhs_tl rhs acc
 
@@ -127,7 +129,14 @@ and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t 
      bind whitespace before a const, because it is written with the implicit
      assumption that matching the | Var v case means is 'in a match' *)
   | lhs, (White _ as term)::rhs_tl ->
-    find_list env lhs rhs_tl (term::acc)
+    (* we only accumulate the whitespace if matching has begun *)
+    begin
+    let acc = match acc with
+      | [] -> []
+      | _ -> term::acc
+    in
+      find_list env lhs rhs_tl acc
+    end
 
   | (Break _)::lhs_tl, (Break _ as term)::rhs_tl ->
     find_list env lhs_tl rhs_tl (term::acc)
@@ -310,8 +319,10 @@ let rec find_shift acc template source =
    (3) For each list of terms in compounds/leafs, also run find_shift.
 *)
 let all template source =
+  (*
   Printf.printf "Finding matches of template: %s\n" (Term.to_string_with_loc template);
   Printf.printf "in source: %s\n" (Term.to_string_with_loc source);
+  *)
   let rec aux acc template source =
     match source with
     | Compound ("block", terms, _) as this_level ->
