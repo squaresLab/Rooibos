@@ -72,6 +72,14 @@ let assert_equiv (e1 : Environment.t) (e2 : Environment.t) =
     assert_equal ~printer e1 e2
 
 
+let test_template_whitespace _ =
+  (* BUG #71 *)
+  assert_equal
+    ~printer:Location.Range.to_string
+    (rg "1:5#1:8")
+    (loc_of_result !" + " !"foo(a + b)")
+
+
 let test_comments _ =
   let (!!) s = !s in
   let (!) s = !!s |> Term.strip in
@@ -902,6 +910,7 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
+      (* "test_template_whitespace" >:: test_template_whitespace *)
       "test_num_matches" >:: test_num_matches
     ; "test_match_location" >:: test_match_location
     ; "test_location" >:: test_location
