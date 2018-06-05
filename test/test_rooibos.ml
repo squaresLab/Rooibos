@@ -326,12 +326,16 @@ let test_strip _ =
     (Term.strip (!"x:[1]"))
 
 
+(* BUG #74 *)
 let test_num_matches _ =
   assert_equal 1
     (num_results !"x = :[1];" !"int x = 4;");
 
   assert_equal 2
-    (num_results !"+" !"wpy = oy + b * t;\nwpz = oz + c * t;")
+    (num_results !"+" !"wpy = oy + b * t;\nwpz = oz + c * t;");
+
+  assert_equal 2
+    (num_results !"+" !"x + y + z")
 
 
 (* BUG #58 *)
@@ -348,6 +352,11 @@ let test_match_location _ =
 
 
 let test_match _ =
+  (* BUG #71 and #74 *)
+  assert_equiv
+    (make_env [("1", !"x")])
+    (env_of_result !"{ :[1] }" !"{ x }");
+
   assert_equiv
     (make_env [("1", !"[{x}[0]]"); ("2", !"{}")])
     (env_of_result !"if (x > f([][:[1]])()) :[2]" !"if (x > f([][[{x}[0]]])()) {}");
@@ -603,7 +612,6 @@ let test_all_match _ =
   in
 
   (* Multi-line case *)
-
   let source =
     {|
       assert(stream->md_len + md_len -
@@ -615,19 +623,16 @@ let test_all_match _ =
       stream->md_len += frame_used;
     |}
   in
-
   let template =
     {|
       memcpy(:[1], :[2], :[3]);
     |}
   in
-
   let rewrite_template =
     {|
       ||:[1]||:[2]||:[3]||
     |}
   in
-
   assert_equal
     ~printer:(fun s ->
         String.concat_map s ~sep:"," ~f:Char.to_string)
@@ -897,7 +902,8 @@ let test_printer _ =
 
   let suite =
     "test" >::: [
-      "test_match_location" >:: test_match_location
+      "test_num_matches" >:: test_num_matches
+    ; "test_match_location" >:: test_match_location
     ; "test_location" >:: test_location
     ; "test_comments" >:: test_comments
     ; "test_parser" >:: test_parser
