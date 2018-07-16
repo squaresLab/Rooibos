@@ -250,6 +250,13 @@ let test_location _ =
     (!"x:[1]")
 
 
+let test_match_over_newline _ =
+  (* BUG #77 *)
+  assert_equiv
+    (make_env [("1", !"factor < 1")])
+    (env_of_result !"if (:[1]) return;" !"if (factor < 1)\n\treturn;")
+
+
 let test_match_no_holes _ =
   (* BUG #53 *)
   assert_equal
@@ -908,20 +915,22 @@ let test_printer _ =
     ("strcpy(dst,src)")
     (Printer.to_string term)
 
-  let suite =
-    "test" >::: [
-      (* "test_template_whitespace" >:: test_template_whitespace *)
-      "test_num_matches" >:: test_num_matches
-    ; "test_match_location" >:: test_match_location
-    ; "test_location" >:: test_location
-    ; "test_comments" >:: test_comments
-    ; "test_parser" >:: test_parser
-    ; "test_match" >:: test_match
-    ; "test_end_to_end" >:: test_end_to_end
-    ; "not_handled_tests" >:: not_handled_tests
-    ; "test_printer" >:: test_printer
-    ; "test_all_match" >:: test_all_match
-    ; "test_match_no_holes" >:: test_match_no_holes
-    ]
+
+let suite =
+  "test" >::: [
+    (* "test_template_whitespace" >:: test_template_whitespace *)
+    "test_match_over_newline" >:: test_match_over_newline
+  ; "test_num_matches" >:: test_num_matches
+  ; "test_match_location" >:: test_match_location
+  ; "test_location" >:: test_location
+  ; "test_comments" >:: test_comments
+  ; "test_parser" >:: test_parser
+  ; "test_match" >:: test_match
+  ; "test_end_to_end" >:: test_end_to_end
+  ; "not_handled_tests" >:: not_handled_tests
+  ; "test_printer" >:: test_printer
+  ; "test_all_match" >:: test_all_match
+  ; "test_match_no_holes" >:: test_match_no_holes
+  ]
 
 let () = run_test_tt_main suite
