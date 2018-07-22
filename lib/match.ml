@@ -110,7 +110,8 @@ and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t 
     (List.length rhs)
     (terms_to_s rhs);
   match lhs, rhs with
-  | White _::lhs_tl, (White _ as term)::rhs_tl ->
+  | White _::lhs_tl, (White _ as term)::rhs_tl
+  | Break _::lhs_tl, (Break _ as term)::rhs_tl ->
     find_list env lhs_tl rhs_tl (term::acc)
 
   (* FIXME should we really skip? *)
@@ -129,7 +130,8 @@ and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t 
      case after | Var v::suffix ... doesn't work because the | Var v... will
      bind whitespace before a const, because it is written with the implicit
      assumption that matching the | Var v case means is 'in a match' *)
-  | lhs, (White _ as term)::rhs_tl ->
+  | lhs, (White _ as term)::rhs_tl
+  | lhs, (Break _ as term)::rhs_tl ->
     (* we only accumulate the whitespace if matching has begun *)
     begin
     let acc = match acc with
@@ -138,9 +140,6 @@ and find_list env lhs rhs (acc : Term.t List.t) : Environment.t * Term.t List.t 
     in
       find_list env lhs rhs_tl acc
     end
-
-  | (Break _)::lhs_tl, (Break _ as term)::rhs_tl ->
-    find_list env lhs_tl rhs_tl (term::acc)
 
   | (Const (c1, _))::lhs_tl, (Const (c2, _) as term)::rhs_tl when c1 = c2 ->
     find_list env lhs_tl rhs_tl (term::acc)
